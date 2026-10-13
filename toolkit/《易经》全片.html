@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<script src="assets/gsap.min.js"></script>
+<style>
+  /* 系列统一：思源宋体 Medium + EB Garamond；字幕、大字、标签字号沿用《现在》v2 / 《悲剧》开头 */
+  @font-face { font-family: "NSerif"; src: local("Noto Serif CJK SC"), local("NotoSerifCJKsc-Regular"); font-weight: 400; }
+  @font-face { font-family: "NSerif"; src: local("Noto Serif CJK SC Medium"), local("NotoSerifCJKsc-Medium"); font-weight: 500; }
+  @font-face { font-family: "EBG"; src: url("assets/eb-garamond-latin-500-italic.woff2") format("woff2"); font-style: italic; font-weight: 500; }
+  @font-face { font-family: "EBG"; src: url("assets/eb-garamond-latin-500-normal.woff2") format("woff2"); font-style: normal; font-weight: 500; }
+  :root { --bg0: #030406; --bg1: #0c0f15; --gold: #e2b866; --ink: #efece6; --dim: #8a8a8f; --cyan: #8fc3d6; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg0); }
+  #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    font-family: "NSerif", serif; font-weight: 500; color: var(--ink);
+    background: radial-gradient(ellipse 115% 85% at 50% 45%, var(--bg1) 0%, var(--bg0) 72%); }
+  .clip { position: absolute; inset: 0; }
+  canvas, svg.layer { position: absolute; inset: 0; }
+  .grain { opacity: .1; mix-blend-mode: screen; pointer-events: none; }
+  .vignette { pointer-events: none; background: radial-gradient(ellipse 85% 75% at 50% 50%, transparent 55%, rgba(0,0,0,.65) 100%); }
+
+  .sub { position: absolute; left: 0; right: 0; bottom: 108px; text-align: center; opacity: 0; }
+  .sub .zh { font-size: 36px; letter-spacing: .1em; color: var(--ink); text-shadow: 0 0 18px rgba(0,0,0,.95); }
+  .sub .en { margin-top: 8px; font-family: "EBG"; font-style: italic; font-size: 24px; letter-spacing: .01em; color: #c3c4c9; opacity: 0; text-shadow: 0 0 14px rgba(0,0,0,.95); }
+  .ch { display: inline-block; opacity: 0; }
+  .big { position: absolute; left: 0; right: 0; text-align: center; color: var(--ink); opacity: 0;
+    font-size: 50px; letter-spacing: .3em; text-shadow: 0 0 22px rgba(255,255,255,.12); }
+  .big .en { display: block; margin-top: 6px; font-family: "EBG"; font-style: italic; font-size: 30px; color: #c3c4c9; letter-spacing: .04em; opacity: 0; text-shadow: none; }
+  .gold { color: #f0c776; }
+  .tag { position: absolute; width: 400px; text-align: center; opacity: 0; }
+  .tag .n { font-size: 36px; letter-spacing: .14em; color: var(--ink); text-shadow: 0 0 16px rgba(0,0,0,.9); }
+  .tag .e { margin-top: 4px; font-family: "EBG"; font-style: italic; font-size: 24px; color: #a9abb1; }
+  .tag .k { margin-top: 12px; font-size: 26px; letter-spacing: .4em; color: #f0c776; }
+  .numbox { position: absolute; left: 0; right: 0; top: 170px; text-align: center; font-size: 190px; opacity: 0; line-height: 1; }
+  .num { font-family: "EBG"; letter-spacing: .02em; color: #fbf8f2; }
+  .bokeh { position: absolute; left: 760px; top: 110px; width: 400px; height: 400px; border-radius: 50%; opacity: 0;
+    background: radial-gradient(circle, rgba(246,200,120,.5) 0%, rgba(226,170,90,.16) 35%, transparent 70%); }
+  .yao { position: absolute; opacity: 0; white-space: nowrap; transform: translateY(-50%); font-size: 34px; letter-spacing: .12em; color: #d3d5da; }
+  .yao b { font-weight: 500; font-size: 26px; color: var(--dim); margin-right: 26px; letter-spacing: .2em; }
+  .lbe { fill: #8a8a8f; font-size: 22px; letter-spacing: 2px; font-family: "EBG"; }
+  .lbn { fill: #6d6e73; font-size: 15px; letter-spacing: 1px; font-family: "EBG"; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="362.1" data-width="1920" data-height="1080">
+  <canvas id="dust" class="clip" width="1920" height="1080" data-start="0" data-duration="362.1" data-track-index="0"></canvas>
+
+  <svg id="stage" class="layer clip" viewBox="0 0 1920 1080" width="1920" height="1080" data-start="0" data-duration="362.1" data-track-index="1">
+    <defs>
+      <filter id="glow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="stone" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="3" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 12 -7.6" result="spk"/><feComposite in="SourceGraphic" in2="spk" operator="out" result="t"/><feGaussianBlur in="t" stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="t"/></feMerge></filter>
+      <filter id="glowG" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <g id="gGrid" opacity="0"></g>
+    <g id="gPicto" fill="#efece6" filter="url(#stone)">
+      <!-- 日、月：按参考图（金文「日」、碑拓「月」）描摹的字形；用笔顺遮罩「写」出来 -->
+      <mask id="mRi" maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="500">
+        <path id="riBox" fill="none" stroke="#fff" stroke-width="86" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M 148.7 62.7 A 56 76 15 1 1 107.3 217.3 A 56 76 15 1 1 148.7 62.7"/>
+        <path id="riDot" fill="none" stroke="#fff" stroke-width="46" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M 62 178 L 158 118"/>
+      </mask>
+      <mask id="mYue" maskUnits="userSpaceOnUse" x="-100" y="-100" width="600" height="800">
+        <path id="yueArc" fill="none" stroke="#fff" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M 120 20 Q 88 250 22 470 M 120 80 Q 230 25 330 60 Q 368 130 345 300 Q 322 470 232 532 Q 160 580 70 585"/>
+        <path id="yueDot" fill="none" stroke="#fff" stroke-width="66" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M 212 165 Q 252 260 222 350 Q 195 430 158 500"/>
+      </mask>
+      <g id="gRi"><g transform="translate(837 203) scale(.9)"><path mask="url(#mRi)" fill-rule="evenodd" d="M 163.0 50.0 L 155.0 50.0 L 151.2 48.8 L 149.5 48.8 L 148.2 49.2 L 145.0 49.2 L 143.2 50.0 L 141.0 50.0 L 138.5 51.0 L 135.0 51.0 L 128.5 53.8 L 125.2 53.8 L 122.2 55.2 L 118.8 58.0 L 113.2 58.2 L 111.5 58.8 L 110.2 61.0 L 106.0 62.8 L 104.2 64.2 L 99.2 66.5 L 98.8 68.5 L 96.2 70.0 L 93.5 70.2 L 91.2 71.8 L 87.5 72.5 L 85.5 73.8 L 81.0 78.5 L 77.8 80.2 L 77.5 84.2 L 77.0 85.2 L 73.2 89.0 L 71.0 93.0 L 67.5 97.0 L 65.5 100.5 L 65.0 102.8 L 62.5 106.8 L 62.2 109.5 L 60.5 112.8 L 60.2 119.8 L 59.2 121.8 L 59.2 124.5 L 56.0 130.5 L 54.8 131.8 L 54.5 133.0 L 56.0 135.5 L 55.8 141.0 L 57.5 143.0 L 58.0 146.2 L 60.2 148.8 L 60.5 154.5 L 62.8 156.8 L 62.2 159.5 L 65.2 162.2 L 65.5 166.8 L 69.5 172.2 L 70.8 176.2 L 80.2 185.5 L 82.0 188.2 L 80.2 191.5 L 80.2 200.8 L 80.8 202.5 L 82.8 205.0 L 82.5 207.2 L 83.8 209.5 L 83.8 213.5 L 85.5 218.8 L 87.8 222.0 L 92.8 227.0 L 94.5 227.8 L 96.5 230.0 L 98.0 230.5 L 99.8 232.2 L 104.2 235.2 L 117.2 235.2 L 119.2 234.5 L 124.0 234.5 L 126.8 233.5 L 129.0 233.5 L 135.0 231.5 L 139.0 228.5 L 140.5 228.0 L 144.0 228.2 L 145.5 227.8 L 147.0 226.8 L 148.2 224.8 L 154.0 223.5 L 156.5 222.5 L 157.5 221.5 L 163.8 218.0 L 166.2 215.5 L 170.0 213.5 L 172.2 211.2 L 174.5 210.2 L 177.5 203.8 L 177.5 201.8 L 179.8 196.5 L 181.8 194.8 L 184.5 193.5 L 185.2 192.2 L 185.2 191.0 L 184.0 189.5 L 183.8 188.2 L 184.2 187.2 L 188.5 183.0 L 189.0 182.0 L 188.5 179.0 L 191.2 175.2 L 192.0 173.2 L 193.8 171.2 L 194.5 169.2 L 194.0 164.2 L 195.5 161.5 L 195.2 158.2 L 196.0 156.8 L 196.0 154.8 L 197.5 153.0 L 199.0 149.2 L 199.0 144.8 L 199.8 143.0 L 199.8 129.5 L 198.0 126.0 L 198.0 124.5 L 199.5 120.2 L 198.8 117.0 L 198.0 115.8 L 198.0 111.2 L 197.0 107.8 L 197.2 106.5 L 196.0 104.2 L 196.2 100.8 L 195.2 97.2 L 195.2 95.8 L 196.2 92.8 L 196.0 90.8 L 194.5 88.2 L 193.2 83.5 L 191.8 80.5 L 189.2 78.2 L 188.8 77.2 L 189.0 74.8 L 188.2 73.0 L 188.2 71.2 L 187.0 69.5 L 186.8 67.8 L 183.0 67.8 L 181.2 66.0 L 180.8 64.0 L 180.0 63.0 L 175.5 61.0 L 173.2 59.0 L 172.5 55.8 L 168.2 53.0 L 166.2 52.5 L 165.0 51.0 Z M 116.0 151.8 L 118.0 153.5 L 119.0 155.5 L 123.5 159.8 L 126.0 163.2 L 133.8 171.0 L 135.0 173.2 L 138.0 176.2 L 139.8 179.8 L 139.8 182.0 L 138.2 184.5 L 136.2 186.2 L 132.0 188.0 L 130.8 188.0 L 127.0 189.5 L 125.0 189.8 L 120.0 194.2 L 117.2 194.8 L 113.5 196.8 L 111.5 197.2 L 105.8 197.0 L 103.2 198.0 L 94.8 198.0 L 93.2 197.5 L 90.0 194.5 L 89.0 192.0 L 89.8 190.2 L 89.2 187.2 L 89.8 186.5 L 92.2 185.5 L 96.5 185.5 L 98.5 186.2 L 102.5 186.2 L 104.0 185.2 L 104.2 184.2 L 103.5 183.0 L 103.8 181.8 L 109.0 176.8 L 110.2 174.0 L 109.8 172.0 L 110.2 170.0 L 109.5 168.0 L 110.2 165.8 L 110.2 152.8 L 111.5 151.8 Z M 164.0 92.8 L 164.2 97.0 L 166.0 100.0 L 166.0 101.0 L 168.8 108.2 L 168.8 110.0 L 166.5 112.5 L 166.2 114.2 L 168.8 119.2 L 169.0 121.5 L 167.0 126.5 L 167.0 128.0 L 168.0 129.5 L 168.0 130.2 L 164.8 133.2 L 164.2 134.2 L 164.0 137.2 L 163.0 139.5 L 162.0 140.5 L 159.5 140.8 L 158.0 140.2 L 156.8 139.2 L 154.2 135.0 L 150.8 134.2 L 148.2 132.8 L 145.5 132.5 L 139.2 127.8 L 136.0 127.8 L 133.5 125.5 L 128.5 123.0 L 121.8 122.8 L 119.2 122.0 L 114.8 124.2 L 113.5 123.8 L 113.2 122.5 L 114.0 121.0 L 119.5 115.5 L 121.0 112.5 L 122.0 111.5 L 124.2 111.0 L 127.0 109.5 L 129.0 107.5 L 129.5 106.2 L 132.0 103.2 L 135.2 102.5 L 146.0 96.5 L 150.0 95.8 L 154.2 91.5 L 155.8 91.0 L 158.0 91.0 L 161.5 92.5 L 163.0 92.2 Z"/></g></g>
+      <g id="gYue"><g transform="translate(872 540) scale(.42)"><path mask="url(#mYue)" fill-rule="evenodd" d="M 206.0 430.5 L 204.5 430.0 L 203.0 430.5 L 200.0 433.5 L 197.5 434.5 L 196.2 435.8 L 195.5 437.2 L 194.8 441.0 L 192.5 445.5 L 188.0 449.8 L 186.2 453.5 L 183.2 457.8 L 183.2 462.2 L 182.2 464.2 L 174.2 472.0 L 171.0 473.0 L 168.0 472.8 L 165.0 473.8 L 163.5 475.8 L 162.8 482.8 L 159.2 485.8 L 154.5 487.5 L 149.8 492.0 L 149.2 493.0 L 149.2 495.5 L 150.8 497.5 L 152.2 498.0 L 154.0 497.5 L 155.0 496.5 L 156.2 493.5 L 158.0 491.8 L 163.2 489.8 L 165.5 486.8 L 165.8 484.5 L 172.5 478.5 L 175.2 476.8 L 176.5 475.2 L 180.5 474.5 L 183.0 473.2 L 185.5 471.2 L 188.5 468.0 L 190.2 464.0 L 198.5 456.2 L 199.0 455.2 L 199.5 450.2 L 201.5 447.5 L 202.8 444.2 L 205.8 440.8 L 207.2 438.0 L 207.5 433.2 L 207.0 431.5 Z M 211.8 170.5 L 209.5 171.8 L 206.2 179.5 L 203.8 183.5 L 201.0 186.2 L 198.2 187.5 L 196.5 189.2 L 195.8 190.8 L 195.8 193.5 L 196.2 194.5 L 198.2 196.0 L 202.2 197.0 L 204.5 198.5 L 206.2 200.5 L 208.2 205.8 L 209.2 210.5 L 209.2 213.0 L 207.5 218.2 L 207.0 225.2 L 208.5 230.8 L 208.5 235.5 L 207.5 240.0 L 205.8 244.0 L 205.2 247.5 L 203.8 252.2 L 203.8 254.5 L 205.5 265.2 L 203.5 270.2 L 203.2 274.8 L 201.5 278.5 L 201.5 281.0 L 203.0 285.2 L 203.0 288.0 L 201.0 294.0 L 198.2 298.8 L 195.8 308.5 L 194.2 309.8 L 189.8 310.0 L 188.0 312.0 L 188.5 320.2 L 186.2 326.0 L 187.5 335.2 L 189.0 337.2 L 190.5 337.8 L 194.5 336.2 L 196.5 337.0 L 199.8 340.2 L 202.0 344.5 L 204.0 346.8 L 210.2 350.0 L 216.2 351.0 L 218.2 352.0 L 220.5 354.0 L 224.5 355.2 L 226.0 357.0 L 226.0 360.2 L 225.0 367.5 L 222.5 371.5 L 221.5 374.2 L 221.8 379.5 L 220.8 382.2 L 217.8 387.5 L 216.8 395.0 L 213.8 401.5 L 214.2 407.5 L 215.2 408.8 L 216.8 409.2 L 219.8 407.8 L 221.8 405.2 L 221.2 397.8 L 222.8 394.2 L 224.0 393.0 L 226.8 391.5 L 227.8 390.5 L 229.5 386.5 L 235.5 381.8 L 236.0 380.8 L 236.0 376.8 L 236.8 375.0 L 240.5 372.2 L 242.5 369.5 L 242.5 367.5 L 241.5 365.0 L 242.5 354.0 L 244.0 350.2 L 245.0 345.2 L 249.5 333.0 L 249.8 326.8 L 251.0 324.0 L 254.2 319.2 L 256.0 313.0 L 256.0 309.2 L 255.2 307.2 L 255.2 304.8 L 257.5 301.0 L 256.5 295.0 L 256.2 281.2 L 257.0 277.0 L 258.0 274.5 L 258.0 272.2 L 256.8 269.8 L 256.8 267.8 L 260.2 263.5 L 260.2 260.5 L 259.0 255.8 L 259.0 245.8 L 257.5 242.8 L 253.8 238.5 L 250.2 229.5 L 250.2 226.2 L 251.5 222.2 L 251.2 218.0 L 247.5 210.0 L 245.2 206.5 L 244.5 204.0 L 242.0 199.0 L 239.0 195.5 L 230.0 190.0 L 226.2 186.2 L 219.0 181.5 L 217.2 179.0 L 214.8 172.2 L 213.5 171.0 Z M 120.0 45.0 L 118.0 45.0 L 116.5 46.2 L 115.5 49.0 L 111.8 54.8 L 111.0 57.8 L 111.0 65.5 L 113.0 70.8 L 113.0 72.8 L 109.5 78.0 L 108.5 83.2 L 104.5 87.8 L 103.0 90.5 L 102.0 96.0 L 99.0 106.5 L 99.2 113.0 L 98.2 117.2 L 97.2 119.2 L 93.0 123.2 L 92.2 125.0 L 91.2 135.5 L 88.5 142.2 L 88.5 144.2 L 89.2 146.2 L 89.2 149.8 L 86.5 156.5 L 84.8 163.8 L 83.2 179.8 L 81.8 185.2 L 82.0 191.0 L 81.0 194.8 L 78.8 199.8 L 78.8 201.5 L 80.8 204.8 L 80.8 206.2 L 73.8 212.5 L 70.8 216.8 L 70.0 225.5 L 69.0 228.5 L 66.5 233.0 L 66.5 238.8 L 63.5 245.8 L 60.0 251.0 L 59.2 257.5 L 56.0 263.8 L 56.0 266.2 L 57.5 269.8 L 57.5 272.5 L 55.0 279.0 L 55.0 282.5 L 57.5 288.2 L 57.5 290.2 L 49.8 299.8 L 48.2 303.2 L 46.2 311.0 L 43.2 316.8 L 42.2 321.5 L 42.2 325.0 L 43.2 328.8 L 43.2 334.2 L 41.8 338.8 L 41.5 343.2 L 40.8 345.0 L 37.0 349.0 L 36.0 350.8 L 33.8 359.5 L 30.8 368.0 L 27.2 371.2 L 26.5 372.5 L 24.5 378.8 L 24.2 384.0 L 23.8 385.8 L 22.2 387.0 L 19.0 387.5 L 17.5 389.5 L 17.2 393.2 L 17.8 398.8 L 17.0 401.8 L 15.8 404.2 L 13.0 407.2 L 10.8 408.5 L 9.0 410.2 L 7.5 413.2 L 7.2 418.0 L 6.8 419.0 L 3.8 421.5 L 0.0 422.8 L 0.0 467.0 L 3.0 467.8 L 7.5 472.5 L 11.5 472.5 L 17.0 469.5 L 19.8 466.5 L 23.0 464.2 L 25.8 460.8 L 30.5 456.5 L 31.8 453.5 L 32.2 450.0 L 35.2 444.8 L 36.5 440.5 L 42.2 431.8 L 43.5 425.5 L 45.2 421.2 L 45.2 418.5 L 44.2 415.8 L 44.2 413.5 L 48.2 409.0 L 49.5 406.8 L 49.8 401.2 L 52.2 397.2 L 52.0 392.0 L 55.2 388.8 L 60.0 382.5 L 61.2 377.8 L 64.5 375.5 L 66.0 373.5 L 66.2 370.5 L 67.2 367.2 L 66.8 357.2 L 69.2 351.2 L 69.0 341.8 L 70.2 334.0 L 71.2 331.2 L 73.8 328.5 L 76.0 325.0 L 76.5 320.8 L 77.8 317.5 L 77.8 313.5 L 80.2 310.0 L 80.2 297.2 L 80.8 292.8 L 84.0 285.8 L 85.2 284.2 L 89.0 276.8 L 89.2 271.5 L 91.0 264.2 L 96.0 254.5 L 96.2 247.5 L 98.0 242.5 L 98.2 234.8 L 102.5 227.2 L 102.2 221.0 L 104.2 216.8 L 105.8 212.0 L 105.8 208.8 L 104.8 204.8 L 104.8 201.5 L 105.5 199.8 L 105.5 194.0 L 107.8 190.8 L 108.5 188.2 L 109.2 182.2 L 109.2 173.2 L 110.2 163.5 L 112.2 154.2 L 114.5 148.8 L 114.2 143.0 L 115.0 139.8 L 116.0 137.2 L 118.2 134.2 L 119.0 131.5 L 119.0 128.2 L 117.8 123.8 L 117.8 119.8 L 116.2 113.5 L 116.2 111.5 L 117.0 109.5 L 121.2 106.2 L 122.0 104.5 L 123.0 98.8 L 124.2 96.0 L 124.0 93.8 L 123.0 92.8 L 121.2 92.0 L 120.0 90.5 L 120.0 89.0 L 121.0 86.2 L 121.0 68.8 L 121.5 67.2 L 121.5 62.0 L 122.2 58.5 L 122.5 53.8 L 122.2 47.8 L 121.5 46.2 Z M 314.5 38.8 L 312.0 38.5 L 310.0 39.0 L 306.0 39.0 L 294.8 36.5 L 291.2 35.0 L 288.8 33.2 L 278.8 31.8 L 275.0 32.2 L 270.8 34.0 L 269.0 34.0 L 263.0 31.5 L 254.8 31.0 L 248.8 32.2 L 245.5 31.0 L 242.0 30.5 L 236.2 32.0 L 230.0 36.0 L 221.5 36.5 L 214.8 40.8 L 208.8 42.0 L 207.2 42.8 L 202.0 47.0 L 196.8 47.0 L 191.0 49.5 L 186.8 49.5 L 184.8 50.0 L 183.0 51.0 L 181.0 53.0 L 178.2 58.2 L 174.2 61.8 L 174.2 63.2 L 175.2 64.5 L 179.5 65.2 L 181.0 64.8 L 182.0 63.8 L 183.0 61.0 L 185.2 59.0 L 187.0 58.5 L 191.5 58.8 L 196.0 58.0 L 200.8 58.0 L 212.0 61.8 L 217.2 61.0 L 226.2 64.0 L 228.5 63.8 L 232.2 62.2 L 240.0 62.5 L 245.2 62.0 L 252.2 60.0 L 260.8 60.8 L 267.8 58.8 L 271.0 59.0 L 276.0 60.5 L 282.8 61.0 L 290.0 62.8 L 295.5 62.5 L 297.5 63.2 L 299.2 65.2 L 301.5 72.5 L 307.8 77.8 L 311.0 81.5 L 312.0 83.5 L 312.5 86.8 L 313.2 88.5 L 315.2 90.0 L 319.5 91.0 L 321.0 92.2 L 321.5 93.2 L 322.0 106.0 L 323.8 108.8 L 327.2 112.2 L 329.2 116.5 L 329.0 122.8 L 327.5 126.5 L 327.5 129.5 L 329.2 134.0 L 329.2 136.2 L 328.2 139.8 L 325.2 144.5 L 322.8 152.2 L 323.0 155.8 L 325.0 161.2 L 325.0 176.0 L 327.2 181.8 L 327.2 185.0 L 326.0 189.8 L 322.5 198.0 L 322.0 201.2 L 321.8 215.8 L 323.2 221.8 L 323.2 224.2 L 322.0 228.2 L 318.8 233.5 L 318.8 236.2 L 319.8 238.2 L 319.8 243.2 L 318.8 248.0 L 318.8 252.5 L 320.0 255.8 L 320.0 258.0 L 317.2 269.5 L 315.0 274.5 L 314.2 279.5 L 312.5 283.0 L 311.8 286.2 L 309.5 292.0 L 310.0 298.0 L 307.0 304.0 L 306.5 310.5 L 302.8 321.5 L 302.8 323.5 L 304.0 326.0 L 304.0 328.2 L 302.5 331.2 L 302.5 337.5 L 301.8 339.2 L 298.5 342.5 L 296.8 346.8 L 295.8 351.0 L 295.5 361.2 L 293.5 364.0 L 289.8 365.8 L 287.0 369.5 L 287.0 371.5 L 290.0 376.0 L 290.0 377.8 L 287.2 381.8 L 283.0 386.2 L 281.0 391.8 L 280.0 392.8 L 276.0 394.0 L 274.8 395.0 L 274.2 397.5 L 276.0 402.8 L 276.0 405.0 L 275.5 406.0 L 270.8 410.5 L 268.5 414.2 L 266.5 420.5 L 264.0 425.2 L 263.2 433.0 L 261.0 437.0 L 260.0 440.0 L 256.5 444.2 L 253.2 450.2 L 253.0 455.8 L 250.5 458.8 L 247.0 460.8 L 245.8 462.0 L 241.8 468.5 L 240.0 473.2 L 235.2 478.0 L 232.8 483.0 L 231.8 488.5 L 230.2 490.0 L 227.2 491.2 L 226.2 492.2 L 225.5 497.2 L 221.8 500.5 L 219.5 505.0 L 215.8 509.8 L 214.2 513.2 L 212.2 515.0 L 209.5 515.2 L 207.5 516.0 L 205.8 517.8 L 204.5 520.8 L 204.0 526.0 L 201.5 530.8 L 200.0 532.2 L 198.0 533.0 L 192.2 533.8 L 186.5 536.0 L 184.0 538.2 L 178.0 541.0 L 171.5 548.0 L 169.5 548.8 L 163.8 549.5 L 159.8 552.2 L 153.8 553.0 L 148.5 557.5 L 147.0 558.2 L 141.8 559.2 L 137.0 561.5 L 132.5 565.8 L 128.5 566.0 L 124.2 567.0 L 116.8 567.0 L 115.2 567.5 L 110.5 567.5 L 104.2 566.2 L 102.2 566.5 L 99.5 568.0 L 98.2 569.2 L 97.2 572.8 L 96.2 573.8 L 94.8 574.2 L 93.0 573.8 L 91.8 572.5 L 91.0 568.8 L 88.8 566.2 L 86.8 566.0 L 82.8 567.2 L 80.0 567.2 L 77.2 568.8 L 77.0 570.8 L 78.0 572.0 L 83.0 573.2 L 84.2 574.5 L 85.2 577.2 L 86.8 579.0 L 93.5 582.5 L 94.8 582.8 L 97.2 581.8 L 99.8 581.5 L 109.2 584.5 L 115.5 583.8 L 119.5 585.0 L 125.5 585.0 L 129.8 586.5 L 137.0 586.8 L 139.0 586.0 L 143.2 583.2 L 147.8 582.2 L 150.0 580.2 L 153.8 578.0 L 156.2 578.0 L 158.5 579.8 L 160.0 580.2 L 162.5 580.0 L 172.0 576.8 L 178.2 573.5 L 181.2 570.8 L 186.8 568.2 L 190.8 567.8 L 192.8 567.0 L 194.2 565.2 L 195.5 559.8 L 197.2 558.0 L 201.0 556.0 L 203.2 552.5 L 205.0 550.8 L 212.8 547.2 L 217.0 543.2 L 221.0 541.5 L 224.5 538.8 L 228.8 536.8 L 237.5 527.2 L 239.2 522.8 L 240.5 521.5 L 244.0 519.8 L 249.5 514.5 L 251.0 511.8 L 252.0 508.5 L 255.2 504.0 L 257.0 497.0 L 258.8 495.2 L 264.0 493.0 L 265.8 491.2 L 267.0 488.0 L 268.8 485.2 L 276.8 476.5 L 277.8 471.5 L 280.5 465.5 L 281.2 461.5 L 285.2 455.5 L 288.5 446.2 L 289.5 444.5 L 293.8 440.2 L 296.5 434.0 L 300.5 429.0 L 301.5 426.2 L 301.8 421.5 L 302.5 420.0 L 305.8 417.0 L 308.5 412.0 L 308.8 408.2 L 306.2 401.5 L 306.2 398.5 L 307.2 396.5 L 311.8 392.2 L 314.8 380.8 L 318.5 374.8 L 320.2 369.0 L 320.0 362.5 L 321.0 360.5 L 323.8 357.2 L 324.2 352.8 L 328.5 338.2 L 329.2 333.5 L 329.2 328.5 L 331.2 324.2 L 332.8 316.8 L 338.8 305.5 L 341.0 297.5 L 341.5 290.8 L 342.5 286.8 L 342.5 281.0 L 343.2 278.0 L 342.8 272.2 L 345.0 268.2 L 345.5 265.8 L 347.8 261.2 L 348.8 254.8 L 348.0 246.0 L 351.2 240.0 L 351.5 229.2 L 352.0 227.5 L 352.2 222.5 L 354.5 217.0 L 355.0 207.0 L 354.2 204.2 L 354.0 200.2 L 354.8 197.8 L 358.2 191.2 L 359.2 187.5 L 359.2 183.2 L 358.2 179.5 L 358.2 176.8 L 360.0 164.0 L 360.2 153.8 L 362.0 147.5 L 362.0 145.8 L 361.5 144.8 L 357.5 141.2 L 356.8 139.8 L 356.8 135.5 L 358.0 130.5 L 358.0 128.2 L 357.0 124.8 L 357.0 121.5 L 358.5 118.0 L 358.5 115.2 L 356.0 111.2 L 354.2 95.8 L 351.0 92.5 L 350.2 90.8 L 350.2 87.0 L 351.2 82.8 L 351.2 80.2 L 348.2 75.0 L 347.0 70.2 L 345.2 67.2 L 340.8 62.8 L 336.0 60.2 L 330.2 53.8 L 327.2 52.8 L 322.0 49.8 L 320.0 47.5 L 316.2 40.0 Z"/></g></g>
+    </g>
+    <g id="gTri"></g>
+    <g id="gRow" opacity="0"></g>
+    <g id="gStack"></g>
+    <g id="gQian"></g>
+    <g id="gDemo" opacity="0"></g>
+    <g id="gFilm"></g>
+    <g id="gArrow" opacity="0" stroke="#8a8a8f" stroke-width="1.5" fill="none"></g>
+    <rect id="slot6" fill="none" stroke="#8a8a8f" stroke-width="1.5" stroke-dasharray="6 9" opacity="0"/>
+  </svg>
+
+  <canvas id="titleCanvas" class="clip" width="1920" height="1080" data-start="0" data-duration="362.1" data-track-index="3"></canvas>
+  <div id="titleLayer" class="clip" data-start="0" data-duration="362.1" data-track-index="4">
+    <div id="titleCrisp" style="position:absolute;inset:0;opacity:0;line-height:1;color:#f5f2ec;text-shadow:0 0 24px rgba(255,255,255,.18);"></div>
+    <svg class="layer" viewBox="0 0 1920 1080" width="1920" height="1080">
+      <defs>
+        <linearGradient id="tl1" x1="0" x2="1"><stop offset="0" stop-color="#9fd6ea" stop-opacity="0"/><stop offset="1" stop-color="#9fd6ea" stop-opacity=".9"/></linearGradient>
+        <linearGradient id="tl2" x1="1" x2="0"><stop offset="0" stop-color="#9fd6ea" stop-opacity="0"/><stop offset="1" stop-color="#9fd6ea" stop-opacity=".9"/></linearGradient>
+        <filter id="glow3" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <line id="tLine" x1="0" y1="620" x2="1920" y2="620" stroke="#8fc3d6" stroke-opacity=".22" opacity="0"/>
+      <rect id="tTrailL" x="960" y="619" width="0" height="2" fill="url(#tl2)" opacity="0"/>
+      <rect id="tTrailR" x="960" y="619" width="0" height="2" fill="url(#tl1)" opacity="0"/>
+      <circle id="tDotL" cx="960" cy="620" r="5" fill="#fff" filter="url(#glow3)" opacity="0"/>
+      <circle id="tDotR" cx="960" cy="620" r="5" fill="#fff" filter="url(#glow3)" opacity="0"/>
+    </svg>
+    <div id="titleEn" style="position:absolute;left:0;right:0;top:660px;text-align:center;opacity:0;font-size:30px;letter-spacing:.35em;color:#f0c776;">周 易<div style="margin-top:14px;font-family:EBG;font-size:19px;letter-spacing:.5em;color:#9a9ba1">THE BOOK OF CHANGES</div></div>
+    <div id="titleNote" style="position:absolute;right:120px;bottom:72px;opacity:0;font-size:22px;letter-spacing:.2em;color:#7a7b80;">古说：日月为易</div>
+  </div>
+
+  <div id="texts" class="clip" data-start="0" data-duration="362.1" data-track-index="5"></div>
+
+  <svg class="grain clip" data-start="0" data-duration="362.1" data-track-index="9" width="1920" height="1080">
+    <filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="11" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0"/></filter>
+    <rect width="1920" height="1080" filter="url(#n)"/>
+  </svg>
+  <div class="vignette clip" data-start="0" data-duration="362.1" data-track-index="10"></div>
+</div>
+
+<script>
+(function () {
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const $ = id => document.getElementById(id);
+  let seed = 20261011;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  gsap.defaults({ lazy: false });
+  const tl = gsap.timeline({ paused: true });
+  const SY = []; const sync = f => { SY.push(f); return f; };
+  const SFX = []; const sfx = (k, t, o = {}) => SFX.push([k, +t.toFixed(3), o]); window.__sfx = SFX;
+  const INK = "#efece6", GOLD = "#f0c776";
+
+  // ================= PACING RULES（与《现在》《悲剧》一致） =================
+  const SPEED = 1.25;   // 解释性的 N 屏整体快 1.25 倍；M（钩子）和 E（结论/情绪）不变
+  const dwellOf = (type, n) => ({ N: Math.max(2.5, 1.2 + 0.105 * n) / SPEED, M: Math.max(3.6, 1.6 + 0.13 * n), E: Math.max(5.0, 2.0 + 0.15 * n) })[type];
+  const gapOf = type => ({ N: 0.4 / SPEED, M: 0.6, E: 1.0 })[type];
+
+  // ================= 背景：缓慢漂浮的细尘 =================
+  const D = { t: 0 };
+  const dust = []; for (let i = 0; i < 320; i++) dust.push({ x: rnd() * 1920, y: rnd() * 1080, r: rnd() * .8 + .25, a: rnd() * .5 + .15, ph: rnd() * 6.283, v: rnd() * 5 + 2 });
+  const dx = $("dust").getContext("2d");
+  const drawDust = () => { dx.clearRect(0, 0, 1920, 1080);
+    for (const p of dust) { const y = ((p.y - D.t * p.v) % 1080 + 1080) % 1080, x = p.x + Math.sin(D.t * .2 + p.ph) * 10;
+      dx.fillStyle = `rgba(230,226,214,${p.a * (.65 + .35 * Math.sin(D.t * 1.3 + p.ph))})`; dx.beginPath(); dx.arc(x, y, p.r, 0, 6.283); dx.fill(); } };
+
+  // ================= helpers =================
+  const texts = $("texts");
+  function el(tag, cls, html, style) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (style) e.style.cssText = style; texts.appendChild(e); return e; }
+  function S(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+  function chars(node, text) { node.innerHTML = ""; for (const c of text) { const s = document.createElement("span"); s.className = "ch"; s.textContent = c; node.appendChild(s); } return node.querySelectorAll(".ch"); }
+  function sub(zh, en, t, dwell) {
+    const b = el("div", "sub", `<div class="zh"></div><div class="en">${en || ""}</div>`);
+    const cs = chars(b.querySelector(".zh"), zh);
+    tl.set(b, { opacity: 1 }, t);
+    tl.fromTo(cs, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: .4, stagger: Math.min(.04, .7 / cs.length), ease: "power2.out" }, t);
+    if (en) tl.fromTo(b.querySelector(".en"), { opacity: 0 }, { opacity: 1, duration: .6 }, t + .25);
+    tl.to(b, { opacity: 0, duration: .35 }, t + dwell - .35);
+    return b;
+  }
+  function big(zh, en, t, dwell, top, size, stag) {
+    const b = el("div", "big", `<span class="zh"></span><span class="en">${en || ""}</span>`, `top:${top}px;${size ? "font-size:" + size + "px;" : ""}`);
+    const cs = chars(b.querySelector(".zh"), zh);
+    tl.set(b, { opacity: 1 }, t);
+    tl.fromTo(cs, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: .7, stagger: stag != null ? stag : Math.min(.12, 1.2 / cs.length), ease: "power2.out" }, t);
+    if (en) tl.fromTo(b.querySelector(".en"), { opacity: 0 }, { opacity: 1, duration: .8 }, t + .6);
+    if (dwell != null) tl.to(b, { opacity: 0, duration: .45 }, t + dwell - .45);
+    return { b, cs };
+  }
+  function tag(zh, en, k, x, y, t, outT) {
+    const g = el("div", "tag", `<div class="n">${zh}</div>${en ? `<div class="e">${en}</div>` : ""}${k ? `<div class="k">${k}</div>` : ""}`, `left:${x - 200}px;top:${y}px;`);
+    tl.fromTo(g, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: .6 }, t);
+    if (outT != null) tl.to(g, { opacity: 0, duration: .45 }, outT);
+    return g;
+  }
+  const show = (sel, t, d = .5, to = 1) => tl.to(sel, { opacity: to, duration: d }, t);
+  const hide = (sel, t, d = .5) => tl.to(sel, { opacity: 0, duration: d }, t);
+  const draw = (sel, t, d, stagger = 0, ease = "power1.inOut") => tl.to(sel, { strokeDashoffset: 0, duration: d, stagger, ease }, t);
+
+  // 一条爻：k 控制从中间向两边长出（不对嵌套 <g> 用 GSAP transform，直接写属性）
+  function mkLine(g, yang, cx, cy, w, h, col) {
+    const o = { k: 1 };
+    const a = { y: cy - h / 2, height: h, rx: h / 2, fill: col };
+    const r1 = S("rect", a, g), r2 = yang ? null : S("rect", a, g);
+    o.els = r2 ? [r1, r2] : [r1];
+    o.draw = () => { const k = o.k;
+      if (yang) { r1.setAttribute("x", cx - w / 2 * k); r1.setAttribute("width", Math.max(0, w * k)); }
+      else { const gp = w * .18, sg = (w - gp) / 2; r1.setAttribute("x", cx - w / 2 * k); r1.setAttribute("width", Math.max(0, sg * k)); r2.setAttribute("x", cx + gp / 2 * k); r2.setAttribute("width", Math.max(0, sg * k)); } };
+    o.draw(); return o;
+  }
+  function mkHex(parent, bits, cx, cy, w, h, pitch, col, animate) {
+    const g = S("g", { filter: "url(#glow)" }, parent);
+    const L = bits.map((b, i) => mkLine(g, b, cx, cy + ((bits.length - 1) / 2 - i) * pitch, w, h, col || INK));
+    if (animate) L.forEach(o => { o.k = 0; o.draw(); sync(o.draw); });
+    return { g, L, y: i => cy + ((bits.length - 1) / 2 - i) * pitch };
+  }
+  const grow = (L, t, d = .5, stagger = .12) => tl.fromTo(L, { k: 0 }, { k: 1, duration: d, stagger, ease: "power3.out", immediateRender: false }, t);
+
+  // 八卦（线从下往上，1 阳 0 阴）与通行本卦序
+  const TRI = { qian: [1,1,1], dui: [1,1,0], li: [1,0,1], zhen: [1,0,0], xun: [0,1,1], kan: [0,1,0], gen: [0,0,1], kun: [0,0,0] };
+  const KW = [["qian","qian"],["kun","kun"],["kan","zhen"],["gen","kan"],["kan","qian"],["qian","kan"],["kun","kan"],["kan","kun"],["xun","qian"],["qian","dui"],["kun","qian"],["qian","kun"],["qian","li"],["li","qian"],["kun","gen"],["zhen","kun"],
+    ["dui","zhen"],["gen","xun"],["kun","dui"],["xun","kun"],["li","zhen"],["gen","li"],["gen","kun"],["kun","zhen"],["qian","zhen"],["gen","qian"],["gen","zhen"],["dui","xun"],["kan","kan"],["li","li"],["dui","gen"],["zhen","xun"],
+    ["qian","gen"],["zhen","qian"],["li","kun"],["kun","li"],["xun","li"],["li","dui"],["kan","gen"],["zhen","kan"],["gen","dui"],["xun","zhen"],["dui","qian"],["qian","xun"],["dui","kun"],["kun","xun"],["dui","kan"],["kan","xun"],
+    ["dui","li"],["li","xun"],["zhen","zhen"],["gen","gen"],["xun","gen"],["zhen","dui"],["zhen","li"],["li","gen"],["xun","xun"],["dui","dui"],["xun","kan"],["kan","dui"],["xun","dui"],["zhen","gen"],["kan","li"],["li","kan"]];
+  const hexBits = i => TRI[KW[i][1]].concat(TRI[KW[i][0]]);
+
+  let T = 0;
+  function beat(type, zh, en, opts = {}) {
+    const t0 = T + (opts.pre || 0);
+    const n = [...(zh || opts.bigText || "")].length;
+    const dwell = opts.dwell ? (type === "N" && !opts.fixed ? opts.dwell / SPEED : opts.dwell) : dwellOf(type, n);
+    if (opts.vis) opts.vis(t0, dwell);
+    if (type === "E" && !opts.noChime) sfx("chime", t0);
+    if (zh) { const sb = sub(zh, en, t0, dwell); if (opts.subBottom) sb.style.bottom = opts.subBottom + "px"; }
+    if (opts.bigText) big(opts.bigText, opts.bigEn, t0 + (opts.bigDelay || 0), dwell - (opts.bigDelay || 0), opts.bigTop || 150, opts.bigSize);
+    (window.__beats = window.__beats || []).push([zh || opts.bigText || opts.name || "", +t0.toFixed(2), +dwell.toFixed(2)]);
+    T = t0 + dwell + (opts.gap != null ? opts.gap : gapOf(type));
+    return { t0, dwell, end: t0 + dwell };
+  }
+
+  // ================= 1：六十四卦方阵 =================
+  const grid = $("gGrid"), cells = [];
+  const CX = 112, CY = 100, gx0 = 960 - 3.5 * CX, gy0 = 470 - 3.5 * CY;
+  for (let i = 0; i < 64; i++) {
+    const x = gx0 + (i % 8) * CX, y = gy0 + Math.floor(i / 8) * CY;
+    const c = S("g", { opacity: 0 }, grid);
+    const h = mkHex(c, hexBits(i), x, y - 6, 60, 5, 9);
+    const n = S("text", { x, y: y + 42, class: "lbn", "text-anchor": "middle" }, c); n.textContent = String(i + 1).padStart(2, "0");
+    cells.push({ c, h });
+  }
+  // ================= 0：天行健，君子以＿＿＿＿ → 自强不息 → 这是吉卦吗？ =================
+  let q1;
+  beat("M", null, null, { name: "天行健填空", pre: 0, dwell: 3.4, gap: 0,
+    vis: (t0, d) => {
+      q1 = big("天行健，君子以＿＿＿＿", "As heaven moves with vigor, the noble one ____", t0, null, 380, 56, .05);
+      const blanks = [...q1.cs].slice(-4);
+      tl.to(blanks, { color: GOLD, duration: .01 }, t0 + 1.0);
+      for (let i = 0; i < 2; i++) { tl.to(blanks, { opacity: .25, duration: .3 }, t0 + 1.2 + i * .8); tl.to(blanks, { opacity: 1, duration: .3 }, t0 + 1.6 + i * .8); }
+    } });
+  beat("M", null, null, { name: "自强不息", dwell: 3.4, gap: .2,
+    vis: (t0, d) => {
+      const a = el("div", "big", `<span class="zh"></span><span class="en">As heaven moves with vigor, the noble one strives without cease.</span>`, "top:380px;font-size:56px;");
+      const cs = chars(a.querySelector(".zh"), "天行健，君子以自强不息");
+      [...cs].slice(-4).forEach(c => c.classList.add("gold"));
+      tl.set(a, { opacity: 1 }, t0); tl.set([...cs].slice(0, 7), { opacity: 1 }, t0 + .02); tl.set(q1.b, { opacity: 0 }, t0 + .02);
+      tl.fromTo([...cs].slice(-4), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: .6, stagger: .16, ease: "power2.out" }, t0);
+      tl.fromTo(a.querySelector(".en"), { opacity: 0 }, { opacity: 1, duration: .6 }, t0 + .6);
+      tag("乾卦 · 象传", "Image commentary on Qian", null, 960, 600, t0 + .9, t0 + d - .3);
+      sfx("shimmer", t0, { dur: 1.0 });
+      tl.to(a, { opacity: 0, duration: .4 }, t0 + d - .3);
+    } });
+  {
+    const hq = S("g", { opacity: 0 }, $("gDemo").parentNode);
+    const h0 = mkHex(hq, [1, 1, 1, 1, 1, 1], 960, 480, 300, 12, 40, INK, true);
+    beat("M", "这是吉卦吗？", "Is this an auspicious hexagram?", { name: "这是吉卦吗", dwell: 1.8, gap: .65, subBottom: 250,
+      vis: (t0, d) => {
+        tl.set(hq, { opacity: 1 }, t0);
+        grow(h0.L, t0, .25, .03);
+        tag("乾卦", "Qian", null, 960, 225, t0 + .1, t0 + d - .25);
+        sfx("click", t0);
+        tl.to(hq, { opacity: 0, duration: .25 }, t0 + d - .25);
+      } });
+  }
+
+  beat("N", null, null, { name: "64卦方阵", dwell: 1.75, gap: 0, fixed: true,
+    vis: (t0, d) => {
+      tl.set(grid, { opacity: 1 }, t0);
+      tl.to(cells.map(c => c.c), { opacity: 1, duration: .3, stagger: .021 }, t0 + .1);
+      sfx("shimmer", t0 + .1, { dur: 1.5 });
+    } });
+
+  // ================= 2：64 =================
+  beat("N", "《易经》共六十四卦。", "The I Ching has sixty-four hexagrams.", { pre: .1, dwell: 1.9, fixed: true,
+    vis: (t0, d) => {
+      tl.to(grid, { opacity: .14, duration: .4 }, t0 - .1);
+      const b = el("div", "numbox", `<span class="num">0</span>`), bk = el("div", "bokeh");
+      const nn = b.querySelector(".num"), st = { v: 0 };
+      tl.fromTo(b, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .45 }, t0);
+      tl.fromTo(st, { v: 0 }, { v: 64, duration: .7, ease: "power1.inOut", onUpdate: () => { nn.textContent = Math.round(st.v); } }, t0);
+      sync(() => { nn.textContent = Math.round(st.v); });
+      sfx("ticker", t0, { dur: .7, count: 12 });
+      tl.fromTo(bk, { opacity: 0, scale: .6 }, { opacity: 1, scale: 1, duration: .7, ease: "power1.out" }, t0);
+      tl.to([b, bk], { opacity: 0, duration: .3 }, t0 + d - .3);
+      tl.to(grid, { opacity: 0, duration: .3 }, t0 + d - .3);
+    } });
+
+  // ================= 3–6：八卦，一字排开 =================
+  {
+    const row = $("gRow");
+    const EIGHT = [["qian","天","乾"],["kun","地","坤"],["zhen","雷","震"],["xun","风","巽"],["kan","水","坎"],["li","火","离"],["gen","山","艮"],["dui","泽","兑"]];
+    const items = EIGHT.map(([k, ch, nm], i) => {
+      const x = 960 + (i - 3.5) * 200, g = S("g", { opacity: 0 }, row);
+      const h = mkHex(g, TRI[k], x, 430, 136, 11, 30, INK, true);
+      const t1 = S("text", { x, y: 560, "text-anchor": "middle", fill: "#efece6", "font-size": 40, "font-family": "NSerif", "font-weight": 500, "letter-spacing": 4 }, g); t1.textContent = ch;
+      const t2 = S("text", { x, y: 606, "text-anchor": "middle", fill: "#f0c776", "font-size": 24, "font-family": "NSerif", "font-weight": 500, "letter-spacing": 6 }, g); t2.textContent = nm + "卦";
+      return { g, h };
+    });
+    tl.set(row, { opacity: 1 }, 0);
+    beat("N", null, null, { name: "八卦一行（闪过）", pre: .1, dwell: 1.0, gap: 0, fixed: true,
+      vis: (t0, d) => {
+        const s = t0 - .1;   // 八个一起、飞快地出现
+        items.forEach((it, i) => { tl.set(it.g, { opacity: 1 }, s + i * .02); grow(it.h.L, s + i * .02, .2, .03); });
+        sfx("sweep", s, { dur: .5 });
+        tl.to(items.map(it => it.g), { opacity: 0, duration: .2 }, t0 + d - .2);
+      } });
+  }
+
+  // ================= 7：上下两个小卦：否 → 遁 → 谦 =================
+  {
+    const st = $("gStack"), SX = 820, UP = 360, LO = 560, PITCH = 50;
+    const mk = (key, y) => { const g = S("g", { opacity: 0 }, st); const h = mkHex(g, TRI[key], SX, y, 340, 14, PITCH, INK, true); return { g, h }; };
+    const uQ = mk("qian", UP), uK = mk("kun", UP), lK = mk("kun", LO), lG = mk("gen", LO);
+    beat("N", "每一卦，都是上下两个小卦构成", "Every hexagram is two trigrams, one above the other.", { pre: .05, dwell: 1.95, gap: .1, fixed: true,
+      vis: (t0, d) => {
+        const s = t0 - .05;
+        tl.set([uQ.g, lK.g], { opacity: 1 }, s);
+        grow(lK.h.L, s, .2, .03); grow(uQ.h.L, s + .08, .2, .03);
+        sfx("sweep", s, { dur: .5 });
+        const tri = (pos, nm, img, y) => el("div", "tag", `<div class="n" style="font-size:34px"><span style="color:#8a8a8f;font-size:26px;margin-right:18px">${pos}</span>${nm}</div><div class="e" style="font-style:normal;font-family:NSerif;font-size:22px;letter-spacing:.3em">${img}</div>`, `left:${470 - 200}px;top:${y - 34}px;`);
+        const uQl = tri("上", "乾卦", "天", UP), uKl = tri("上", "坤卦", "地", UP), lKl = tri("下", "坤卦", "地", LO), lGl = tri("下", "艮卦", "山", LO);
+        tl.fromTo([uQl, lKl], { opacity: 0 }, { opacity: 1, duration: .15 }, s + .1);
+        const res = [["否卦", "Standstill"], ["遁卦", "Retreat"], ["谦卦", "Modesty"]].map(r =>
+          el("div", "tag", `<div class="n" style="font-size:130px;line-height:1.25;letter-spacing:.02em">${r[0]}</div><div class="e">${r[1]}</div>`, `left:${1320 - 200}px;top:330px;`));
+        const R0 = s + .15, R1 = s + .75, R2 = s + 1.35, X = .12;
+        tl.fromTo(res[0], { opacity: 0 }, { opacity: 1, duration: .12 }, R0);
+        // 上面不动，下面换：地 → 山（否 → 遁）
+        tl.to([res[0], lK.g, lKl], { opacity: 0, duration: X }, R1 - X);
+        tl.set(lG.g, { opacity: 1 }, R1 - .05); grow(lG.h.L, R1 - .05, .15, .02);
+        tl.fromTo([lGl, res[1]], { opacity: 0 }, { opacity: 1, duration: X }, R1);
+        sfx("whoosh", R1 - X, { dur: .4, pan0: -.3, pan1: .3 });
+        // 下面不动，上面换：天 → 地（遁 → 谦）
+        tl.to([res[1], uQ.g, uQl], { opacity: 0, duration: X }, R2 - X);
+        tl.set(uK.g, { opacity: 1 }, R2 - .05); grow(uK.h.L, R2 - .05, .15, .02);
+        tl.fromTo([uKl, res[2]], { opacity: 0 }, { opacity: 1, duration: X }, R2);
+        sfx("whoosh", R2 - X, { dur: .4, pan0: .3, pan1: -.3 });
+        tl.to([res[2], uK.g, lG.g, uKl, lGl], { opacity: 0, duration: .2 }, t0 + d - .2);
+      } });
+  }
+
+  // ================= 2a：日 + 月 → 易经（片名卡） =================
+  // 「日」缩进「易」的上半部分，「月」缩进「易」的下半部分（古说：日月为易）
+  const tt0 = T + .2; window.__tt0 = tt0;
+  {
+    const TY = 470, YX = 850, JX = 1070, FS = 190;
+    const tc = $("titleCanvas"), tx = tc.getContext("2d");
+    tc.style.filter = "drop-shadow(0 0 10px rgba(255,255,255,.22))";
+    // 先在离屏画布上找「易」上下两部分的范围
+    const off = document.createElement("canvas"); off.width = 1920; off.height = 1080; const ox = off.getContext("2d");
+    ox.fillStyle = "#fff"; ox.textAlign = "center"; ox.textBaseline = "middle"; ox.font = `500 ${FS}px "NSerif"`;
+    ox.fillText("易", YX, TY);
+    const img = ox.getImageData(0, 0, 1920, 1080).data;
+    const rowInk = y => { let n = 0, x0 = 1e9, x1 = -1; for (let x = YX - 130; x < YX + 130; x++) if (img[(y * 1920 + x) * 4 + 3] > 100) { n++; if (x < x0) x0 = x; if (x > x1) x1 = x; } return [n, x0, x1]; };
+    let yT = 0, yB = 0; for (let y = TY - 130; y < TY + 130; y++) if (rowInk(y)[0]) { if (!yT) yT = y; yB = y; }
+    let split = Math.round(yT + (yB - yT) * .45), best = 1e9;
+    for (let y = Math.round(yT + (yB - yT) * .3); y < yT + (yB - yT) * .6; y++) { const n = rowInk(y)[0]; if (n < best) { best = n; split = y; } }
+    const box = (a, b) => { let x0 = 1e9, x1 = -1; for (let y = a; y <= b; y++) { const r = rowInk(y); if (r[0]) { x0 = Math.min(x0, r[1]); x1 = Math.max(x1, r[2]); } } return { x0, x1, y0: a, y1: b }; };
+    const topB = box(yT, split), botB = box(split + 1, yB);
+    // 日、月两个象形笔画：把它们变换到「易」的上、下两部分
+    const gRi = $("gRi"), gYue = $("gYue");
+    const fit = (g, B) => { const bb = g.getBBox(); return { bx: bb.x + bb.width / 2, by: bb.y + bb.height / 2, sx: (B.x1 - B.x0) / bb.width, sy: (B.y1 - B.y0) / bb.height, tx: (B.x0 + B.x1) / 2, ty: (B.y0 + B.y1) / 2 }; };
+    const fR = fit(gRi, topB), fY = fit(gYue, botB);
+    const M = { m: 0 };
+    const setM = () => { const k = M.m;
+      [[gRi, fR], [gYue, fY]].forEach(([g, f]) => { const sx = 1 + (f.sx - 1) * k, sy = 1 + (f.sy - 1) * k, x = f.bx + (f.tx - f.bx) * k, y = f.by + (f.ty - f.by) * k;
+        g.setAttribute("transform", `translate(${x} ${y}) scale(${sx} ${sy}) translate(${-f.bx} ${-f.by})`); }); };
+    sync(setM); setM();
+    // 画布：易（上半 / 下半分别显现）+ 经
+    const C = { top: 0, bot: 0, jing: 0, q: 0 };
+    const drawC = () => { tx.clearRect(0, 0, 1920, 1080); if (C.q >= 1) return;
+      tx.fillStyle = "#f5f2ec"; tx.textAlign = "center"; tx.textBaseline = "middle"; tx.font = `500 ${FS}px "NSerif"`;
+      const fade = 1 - C.q;
+      if (C.top > 0) { tx.save(); tx.globalAlpha = C.top * fade; tx.beginPath(); tx.rect(0, 0, 1920, split + .5); tx.clip(); tx.fillText("易", YX, TY); tx.restore(); }
+      if (C.bot > 0) { tx.save(); tx.globalAlpha = C.bot * fade; tx.beginPath(); tx.rect(0, split + .5, 1920, 1080); tx.clip(); tx.fillText("易", YX, TY); tx.restore(); }
+      if (C.jing > 0) { tx.globalAlpha = C.jing * fade; tx.fillText("经", JX, TY); }
+      tx.globalAlpha = 1; };
+    sync(drawC);
+
+    draw("#riBox", tt0, 1.0, 0, "power2.inOut"); draw("#riDot", tt0 + .8, .35);
+    draw("#yueArc", tt0 + .9, 1.1, 0, "power2.inOut"); draw("#yueDot", tt0 + 1.8, .35);
+    sfx("sweep", tt0, { dur: 2.2 });
+    tag("日", "sun", null, 1230, 285, tt0 + .7, tt0 + 3.2);
+    tag("月", "moon", null, 1230, 620, tt0 + 1.7, tt0 + 3.2);
+    const a = tt0 + 3.4;                     // 缩向中间
+    tl.fromTo(M, { m: 0 }, { m: 1, duration: 1.6, ease: "power2.inOut" }, a);
+    sfx("whoosh", a, { dur: 1.5, pan0: 0, pan1: 0 });
+    tl.to(C, { top: 1, bot: 1, duration: .7 }, a + 1.3);   // 笔画交接成「易」
+    tl.to("#gPicto", { opacity: 0, duration: .7 }, a + 1.4);
+    sfx("shimmer", a + 1.3, { dur: 1.2 });
+    tl.to(C, { jing: 1, duration: .9 }, a + 2.4);           // 再出「经」
+    // 横线、两颗流星、背书行
+    tl.to("#tLine", { opacity: 1, duration: 1 }, a + 2.6);
+    const md = { d: 0 };
+    const dm = () => { const L = 960 - md.d, R = 960 + md.d, w = Math.min(md.d, 420);
+      $("tDotL").setAttribute("cx", L); $("tDotR").setAttribute("cx", R); $("tTrailL").setAttribute("x", L); $("tTrailL").setAttribute("width", w); $("tTrailR").setAttribute("x", R - w); $("tTrailR").setAttribute("width", w); };
+    sync(dm);
+    tl.fromTo(md, { d: 0 }, { d: 640, duration: 2.6, ease: "power2.out" }, a + 2.8);
+    sfx("whoosh", a + 2.8, { dur: 1.6, pan0: 0, pan1: 0 });
+    tl.to(["#tDotL", "#tDotR", "#tTrailL", "#tTrailR"], { opacity: 1, duration: .4 }, a + 2.8);
+    tl.to("#titleEn", { opacity: 1, duration: 1 }, a + 3.4);
+    tl.to("#titleNote", { opacity: 1, duration: 1 }, a + 3.8);
+    tl.to(["#tDotL", "#tDotR", "#tTrailL", "#tTrailR", "#tLine", "#titleEn", "#titleNote"], { opacity: 0, duration: .8 }, a + 6.6);
+    tl.to(C, { q: 1, duration: .8 }, a + 6.6);
+    T = a + 7.6;
+    (window.__beats = window.__beats || []).push(["片名卡 日月为易", +tt0.toFixed(2), +(T - tt0).toFixed(2)]);
+  }
+
+  // ================= 9–10：什么是吉卦？卦辞带「吉」的 23 卦亮起，停住，乾最亮 =================
+  {
+    // 民间说法里的「上上卦」（通行本卦序 -1）：乾 坤 比 大有 噬嗑 颐 益 夬 升 井 革 渐 丰 兑 节
+    // 来源：网上流传的六十四卦等级表（搜狐、博客园两处一致），没有注明出处；姤卦那里写的是「上卦」，没算进来
+    const JI = [0, 1, 7, 13, 20, 26, 41, 42, 45, 47, 48, 52, 54, 57, 59];
+    const jiCells = JI.map(i => cells[i]), others = cells.filter((c, i) => !JI.includes(i));
+    beat("M", "什么才是吉卦？", "So what makes a hexagram auspicious?", { pre: .5, dwell: 5.2,
+      vis: (t0, d) => {
+        tl.set(cells.map(c => c.c), { opacity: 1 }, t0 - .6);
+        tl.to(grid, { opacity: 1, duration: .8 }, t0 - .6);
+        tl.to(cells.map(c => c.c), { opacity: .18, duration: .6 }, t0 - .6);
+        // 23 卦依次点亮（金色）
+        tl.to(jiCells.map(c => c.c), { opacity: 1, duration: .3, stagger: .14 }, t0 + .6);
+        tl.to(jiCells.flatMap(c => c.h.L.flatMap(o => o.els)), { attr: { fill: "#e2b866" }, duration: .3, stagger: .015 }, t0 + .6);
+        sfx("ticker", t0 + .6, { dur: 2.1, count: 15 });
+        // 「15 / 民间说法里的上上卦」角标：按你的意见去掉
+      } });
+    beat("N", null, null, { name: "乾最亮", pre: .4, dwell: 2.8,
+      vis: (t0, d) => {
+        tl.to(jiCells.slice(1).map(c => c.c), { opacity: .45, duration: .6 }, t0);
+        tl.to(cells[0].c, { opacity: 1, duration: .5 }, t0);
+        tl.to(cells[0].h.L.flatMap(o => o.els), { attr: { fill: "#fffaf0" }, duration: .5 }, t0 + .2);
+        tl.set(cells[0].h.g, { attr: { filter: "url(#glowG)" } }, t0 + .2);
+        tag("乾卦", "Qian", null, gx0 - 170, gy0 - 50, t0 + .4, t0 + d - .3);
+        sfx("chime", t0 + .3, { dur: 3, f0: 783.99 });
+        tl.to(grid, { opacity: 0, duration: .6 }, t0 + d - .3);
+      } });
+  }
+
+  // ================= 13–15：六条线、阴阳、从下往上 =================
+  const QX = 720, QY = 500, QP = 58;
+  const qian = mkHex($("gQian"), [1, 1, 1, 1, 1, 1], QX, QY, 420, 16, QP, INK, true);
+  beat("N", "每一卦，是六条线", "Every hexagram is six lines.", { pre: .4, dwell: 2.5 / 1.5, gap: .27, fixed: true,
+    vis: (t0, d) => { grow(qian.L, t0 - .35, .33, .087); sfx("sweep", t0 - .35, { dur: .95 }); } });
+  {
+    const dm = $("gDemo");
+    mkHex(dm, [1], 1330, 420, 300, 16, 0); mkHex(dm, [0], 1330, 560, 300, 16, 0);
+    beat("N", "实线为阳，断线为阴", "A solid line is yang; a broken line is yin.", { pre: .2, dwell: 2.5 / 1.5, gap: .27, fixed: true,
+      vis: (t0, d) => {
+        show(dm, t0 - .15, .4);
+        tag("阳 <span style='font-family:EBG'>1</span>", "yang", null, 1600, 392, t0, t0 + d - .2);
+        tag("阴 <span style='font-family:EBG'>0</span>", "yin", null, 1600, 532, t0 + .2, t0 + d - .2);
+        hide(dm, t0 + d - .2, .3);
+      } });
+  }
+  {
+    const ar = $("gArrow"), ax = QX - 330;
+    S("line", { x1: ax, y1: qian.y(0) + 24, x2: ax, y2: qian.y(5) - 34 }, ar);
+    S("path", { d: `M ${ax - 9} ${qian.y(5) - 20} L ${ax} ${qian.y(5) - 38} L ${ax + 9} ${qian.y(5) - 20}` }, ar);
+    beat("N", "从下往上数，每一条，为一爻。", "Count from the bottom up: each line is a yao.", { pre: .3,
+      vis: (t0, d) => {
+        show(ar, t0 - .2, .5); sfx("sweep", t0 - .2, { dur: 1.6 });
+        ["初", "二", "三", "四", "五", "上"].forEach((c, i) => {
+          const e = el("div", "yao", c, `left:${QX - 300}px;top:${qian.y(i)}px;font-size:30px;color:#a9abb1;`);
+          tl.to(e, { opacity: 1, duration: .4 }, t0 + i * .26); tl.to(e, { opacity: 0, duration: .4 }, t0 + d - .3);
+        });
+        hide(ar, t0 + d - .3, .45);
+      } });
+  }
+
+  // ================= 16：起卦 =================
+  beat("N", null, null, { name: "起卦", pre: .2, dwell: 4.6,
+    vis: (t0, d) => {
+      tl.to(qian.L, { k: 0, duration: .35, stagger: { each: .04, from: "end" }, ease: "power2.in" }, t0);
+      const lb = el("div", "yao", "起卦<span style='font-family:EBG;font-style:italic;font-size:24px;color:#a9abb1;margin-left:18px;letter-spacing:.02em'>casting</span>", `left:${QX + 290}px;top:${QY}px;font-size:36px;`);
+      tl.to(lb, { opacity: 1, duration: .5 }, t0 + .4); tl.to(lb, { opacity: 0, duration: .4 }, t0 + d - .3);
+      for (let i = 0; i < 6; i++) {
+        tl.fromTo(qian.L[i], { k: 0 }, { k: 1, duration: .35, ease: "power3.out", immediateRender: false }, t0 + .7 + i * .45);
+        const c = el("div", "yao", `<span style="font-family:EBG;font-size:26px;color:#8a8a8f;letter-spacing:.1em">${i + 1} / 6</span>`, `left:${QX + 290}px;top:${QY + 56}px;`);
+        tl.to(c, { opacity: 1, duration: .12 }, t0 + .7 + i * .45);
+        tl.to(c, { opacity: 0, duration: .12 }, i < 5 ? t0 + 1.15 + i * .45 : t0 + d - .3);
+      }
+      sfx("ticker", t0 + .7, { dur: 2.25, count: 6 });
+    } });
+
+  // ================= 17–18：人人都爱吉卦 =================
+  const qTag = tag("乾卦", "Qian", null, QX, QY - 320, T + .1, null);
+  // 第 18 屏：两屏字幕，先「人人都爱吉卦，但」，再「吉卦就一定是吉吗？」
+  beat("M", "人人都爱吉卦，但", "Everyone wants an auspicious hexagram. But", { pre: .4, dwell: 2.6, gap: .2 });
+  beat("M", "吉卦就一定是吉吗？", "Is an auspicious hexagram always auspicious?", { dwell: 3.0 });
+
+  // ================= 19：初九到九五同屏 =================
+  const YAO = [["初九", "潜龙，勿用"], ["九二", "见龙在田"], ["九三", "君子终日乾乾，夕惕若"], ["九四", "或跃在渊"], ["九五", "飞龙在天"]];
+  const yaoEls = YAO.map((y, i) => el("div", "yao", `<b>${y[0]}</b>${y[1]}`, `left:${QX + 270}px;top:${qian.y(i)}px;`));
+  beat("N", null, null, { name: "五句爻辞", dwell: 4.8,
+    vis: (t0, d) => { yaoEls.forEach((e, i) => tl.fromTo(e, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .5 }, t0 + .15 + i * .6)); sfx("shimmer", t0 + .15, { dur: 2.8 }); } });
+
+  // ================= 20：停顿，第六条线空着 =================
+  const s6 = $("slot6"); s6.setAttribute("x", QX - 210); s6.setAttribute("y", qian.y(5) - 8); s6.setAttribute("width", 420); s6.setAttribute("height", 16); s6.setAttribute("rx", 8);
+  beat("N", null, null, { name: "第六条空着", dwell: 2.0, gap: 0,
+    vis: (t0, d) => { tl.to(qian.L[5], { k: 0, duration: .6, ease: "power2.in" }, t0); tl.to(s6, { opacity: 1, duration: .6 }, t0 + .3); } });
+
+  // ================= 21–22：亢龙有＿ → 悔 =================
+  const top6 = el("div", "yao", `<b>上九</b>亢龙有<span style="display:inline-grid"><span class="u" style="grid-area:1/1;color:#8a8a8f">＿</span><span class="h gold" style="grid-area:1/1;opacity:0">悔</span></span>`, `left:${QX + 270}px;top:${qian.y(5)}px;font-size:42px;color:#efece6;`);
+  const uB = top6.querySelector(".u"), hu = top6.querySelector(".h");
+  beat("M", null, null, { name: "亢龙有＿", dwell: 3.6, gap: 0,
+    vis: (t0, d) => {
+      tl.fromTo(top6, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .6 }, t0);
+      for (let i = 0; i < 3; i++) { tl.to(uB, { opacity: .25, duration: .35 }, t0 + 1.0 + i * .9); tl.to(uB, { opacity: 1, duration: .35 }, t0 + 1.45 + i * .9); }
+    } });
+  beat("E", "飞到了极高处，必会有悔恨", "Fly to the very top, and regret is sure to follow.", { pre: 1.6,
+    vis: (t0, d) => {
+      const s = t0 - 1.6;
+      tl.to(uB, { opacity: 0, duration: .2 }, s); tl.to(hu, { opacity: 1, duration: .5 }, s + .05);
+      tl.to(s6, { opacity: 0, duration: .3 }, s);
+      tl.fromTo(qian.L[5], { k: 0 }, { k: 1, duration: .7, ease: "power3.out", immediateRender: false }, s + .1);
+      tl.to(qian.L[5].els, { attr: { fill: GOLD }, duration: .6 }, s + .4);
+      tl.set(qian.L[5].els[0].parentNode, { attr: { filter: "url(#glowG)" } }, s + .4);
+      tl.to(yaoEls, { opacity: .35, duration: .8 }, s + .6);
+      sfx("thud", s + .1, { dur: 2.2 });
+    } });
+
+  // ================= 22 之后：结论大字 =================
+  beat("E", null, null, { name: "卦无定吉", pre: .5, bigText: "卦无定吉，爻无定凶", bigEn: "No hexagram is always auspicious. No line is always ominous.", bigTop: 420, bigSize: 64, bigDelay: .3,
+    vis: (t0, d) => {
+      tl.to(["#gQian", top6, ...yaoEls, qTag], { opacity: 0, duration: .5 }, t0 - .5);
+      tl.to(qian.L.flatMap(o => o.els), { opacity: 0, duration: .5 }, t0 - .5);
+    } });
+  T += .4;
+
+
+  // =====================================================================
+  // ======================  全片：第 23 屏以后  ===========================
+  // =====================================================================
+  const FILM = $("gFilm");
+  const G = (op = 0) => S("g", { opacity: op }, FILM);
+  const DIM = "#4a4b50", CYAN = "#8fc3d6";
+  const hexIn = (o, t, d = .45, st = .07) => grow(o.L, t, d, st);
+  const lineFill = (o, idx, col, t, d = .4) => tl.to(idx.flatMap(i => o.L[i].els), { attr: { fill: col }, duration: d }, t);
+  // 大字 + 出处标签（标签放在大字下方，留出安全距离）
+  function quote(zh, en, t, d, top, size, src, srcEn) {
+    const q = big(zh, en, t, d, top, size || 54);
+    if (src) tag(src, srcEn || null, null, 960, top + (size || 54) + 120, t + .7, t + d - .45);
+    return q;
+  }
+  // 小标题卡
+  function card(zh, en) {
+    beat("M", null, null, { name: "小标题卡 " + zh, pre: .5, dwell: 2.4, gap: .3,
+      vis: (t0, d) => {
+        const c = el("div", "", `<div style="width:80px;height:1px;margin:0 auto 34px;background:#e2b866;opacity:.8"></div><div class="z" style="font-size:52px;letter-spacing:.42em;padding-left:.42em;color:#efece6">${zh}</div><div style="margin-top:16px;font-family:EBG;font-style:italic;font-size:26px;color:#9a9ba1;letter-spacing:.06em">${en}</div>`,
+          "position:absolute;left:0;right:0;top:440px;text-align:center;opacity:0;");
+        tl.fromTo(c, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: .7, ease: "power2.out" }, t0);
+        tl.to(c, { opacity: 0, duration: .5 }, t0 + d - .5);
+        sfx("chime", t0 + .1, { dur: 2.6, f0: 523.25 });
+      } });
+  }
+  // 名字标签（卦名）：放在卦图下方，留距离
+  const nameTag = (zh, en, x, y, t, out) => tag(zh, en, null, x, y, t, out);
+  // 可变卦：每一爻同时有阳线、阴线两种，用透明度切换
+  function mkMorph(parent, bits, cx, cy, w, h, pitch) {
+    const g = S("g", { filter: "url(#glow)" }, parent), rows = [];
+    for (let i = 0; i < 6; i++) {
+      const y = cy + (2.5 - i) * pitch;
+      const gy = S("g", { opacity: bits[i] }, g), gn = S("g", { opacity: 1 - bits[i] }, g);
+      const a = mkLine(gy, 1, cx, y, w, h, INK), b = mkLine(gn, 0, cx, y, w, h, INK);
+      rows.push({ gy, gn, a, b, y });
+    }
+    let cur = bits.slice();
+    return { g, rows, y: i => cy + (2.5 - i) * pitch,
+      set(nb, t, d = .35, order = null) {
+        const idx = order || [0, 1, 2, 3, 4, 5]; let k = 0;
+        idx.forEach(i => { if (nb[i] !== cur[i]) { tl.to(rows[i].gy, { opacity: nb[i], duration: d }, t + k * d * .9); tl.to(rows[i].gn, { opacity: 1 - nb[i], duration: d }, t + k * d * .9); k++; } });
+        cur = nb.slice(); return k * d * .9 + d;
+      },
+      color(i, col, t, d = .4) { tl.to([...rows[i].a.els, ...rows[i].b.els], { attr: { fill: col }, duration: d }, t); },
+      colorAll(col, t, d = .5) { tl.to(rows.flatMap(r => [...r.a.els, ...r.b.els]), { attr: { fill: col }, duration: d }, t); } };
+  }
+  // 卦（下→上 6 位）
+  const HEX = { tai: [1,1,1,0,0,0], dazhuang: [1,1,1,1,0,0], guai: [1,1,1,1,1,0], qian: [1,1,1,1,1,1], gou: [0,1,1,1,1,1], dun: [0,0,1,1,1,1], pi: [0,0,0,1,1,1],
+    guan: [0,0,0,0,1,1], bo: [0,0,0,0,0,1], kun: [0,0,0,0,0,0], fu: [1,0,0,0,0,0], lin: [1,1,0,0,0,0],
+    feng: [1,0,1,1,0,0], song: [0,1,0,1,1,1], qianH: [0,0,1,0,0,0], yu: [0,0,0,1,0,0], dayou: [1,1,1,1,0,1], weiji: [0,1,0,1,0,1] };
+  // 角落小字：汉 · 十二月卦
+  const hanNote = el("div", "", "汉 · 十二月卦", "position:absolute;right:110px;top:84px;opacity:0;font-size:22px;letter-spacing:.24em;color:#7a7b80;");
+  const hanOn = (t, out) => { tl.to(hanNote, { opacity: 1, duration: .5 }, t); if (out != null) tl.to(hanNote, { opacity: 0, duration: .5 }, out); };
+
+  // ================= 第一层：吉凶在时 =================
+  card("吉凶在时", "Fortune depends on timing");
+
+  // 24：卦辞 / 爻辞
+  {
+    const g = G(), h = mkHex(g, HEX.qian, 760, 500, 380, 15, 54, INK, true);
+    beat("N", "每卦一句总判，为卦辞。", "Each hexagram has one overall verdict: the judgment.", { pre: .4, dwell: 4.4,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .4); hexIn(h, t0 - .4, .35, .05);
+        nameTag("乾卦", "Qian", 760, 500 - 2.5 * 54 - 150, t0 - .2, t0 + d + 2.6);
+        // 整卦亮一下
+        tl.set(h.g, { attr: { filter: "url(#glowG)" } }, t0 + .3);
+        tl.set(h.g, { attr: { filter: "url(#glow)" } }, t0 + 1.2);
+        const j = el("div", "yao", `<b>卦辞</b>元亨利贞`, `left:1040px;top:500px;font-size:38px;color:#f0c776;`);
+        tl.fromTo(j, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .5 }, t0 + .4);
+        tl.to(j, { opacity: 0, duration: .4 }, t0 + d - .6);
+        sfx("shimmer", t0 + .3, { dur: 1.2 });
+        // 六条线逐条亮，旁边小字「爻辞」
+        for (let i = 0; i < 6; i++) {
+          const ti = t0 + d - .2 + i * .28;
+          tl.to(h.L[i].els, { attr: { fill: "#fffaf0" }, duration: .15 }, ti);
+          const lb = el("div", "yao", `爻辞`, `left:1000px;top:${h.y(i)}px;font-size:24px;color:#a9abb1;letter-spacing:.3em;`);
+          tl.to(lb, { opacity: 1, duration: .25 }, ti); tl.to(lb, { opacity: 0, duration: .4 }, t0 + d + 2.4);
+        }
+        sfx("ticker", t0 + d - .2, { dur: 1.7, count: 6 });
+        tl.to(g, { opacity: 0, duration: .5 }, t0 + d + 2.4);
+      } });
+    T += 2.9;
+  }
+
+  // 26–28：丰卦
+  {
+    const g = G(), h = mkHex(g, HEX.feng, 620, 520, 340, 14, 50, INK, true);
+    let nt;
+    beat("N", "丰盛。", "Abundance.", { pre: .4,
+      vis: (t0, d) => { tl.set(g, { opacity: 1 }, t0 - .4); hexIn(h, t0 - .4); nt = nameTag("丰卦", "Feng · Abundance", 620, 520 - 2.5 * 50 - 150, t0 - .1, null); sfx("sweep", t0 - .4, { dur: 1 }); } });
+    const q1 = el("div", "yao", `<b>卦辞</b>丰，亨……宜日中`, `left:900px;top:520px;font-size:38px;`);
+    beat("N", "卦辞：亨通，宜在正午。", "The judgment: success; fitting for midday.", { pre: .2, dwell: 3.2,
+      vis: (t0, d) => { tl.fromTo(q1, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .5 }, t0); } });
+    const q2 = el("div", "yao", `<b>上六</b>丰其屋……阒其无人，<span style="color:#8fc3d6">凶</span>`, `left:900px;top:${h.y(5)}px;font-size:38px;`);
+    beat("N", "最后一爻：房子盖到最大，空无一人。凶。", "The top line: the house built biggest, and no one inside. Misfortune.", { pre: .2, dwell: 4.0,
+      vis: (t0, d) => {
+        tl.to(q1, { opacity: .3, duration: .4 }, t0 - .2);
+        tl.fromTo(q2, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .5 }, t0);
+        lineFill(h, [5], CYAN, t0 + .2);
+        tl.set(h.L[5].els[0].parentNode, { attr: { filter: "url(#glowG)" } }, t0 + .2);
+        sfx("thud", t0 + .2, { dur: 1.8 });
+        tl.to([g, q1, q2, nt], { opacity: 0, duration: .5 }, t0 + d - .3);
+      } });
+  }
+  beat("E", null, null, { name: "吉卦里，有凶爻。", pre: .3, bigText: "吉卦里，有凶爻。", bigEn: "Even a good hexagram has an ominous line.", bigTop: 440, bigSize: 60 });
+
+  // 30–33a：讼卦
+  {
+    const g = G(), h = mkHex(g, HEX.song, 620, 520, 340, 14, 50, INK, true);
+    let nt;
+    beat("N", "讼：打官司。", "Song: going to court.", { pre: .4,
+      vis: (t0, d) => { tl.set(g, { opacity: 1 }, t0 - .4); hexIn(h, t0 - .4); nt = nameTag("讼卦", "Song · Conflict", 620, 520 - 2.5 * 50 - 150, t0 - .1, null); sfx("sweep", t0 - .4, { dur: 1 }); } });
+    const q1 = el("div", "yao", `<b>卦辞</b>……<span style="color:#8fc3d6">终凶</span>`, `left:900px;top:470px;font-size:40px;`);
+    beat("N", "卦辞：打到最后，凶。", "The judgment: fight to the end, and it ends badly.", { pre: .2, dwell: 3.0,
+      vis: (t0, d) => { tl.fromTo(q1, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .5 }, t0); sfx("thud", t0 + .1, { dur: 1.4 }); } });
+    const q2 = el("div", "yao", `<b>九五</b>讼，<span style="color:#f0c776">元吉</span>`, `left:900px;top:${h.y(4)}px;font-size:40px;`);
+    beat("N", "可第五爻：这场官司，大吉。", "Yet the fifth line: this lawsuit, greatly auspicious.", { pre: .2, dwell: 3.4,
+      vis: (t0, d) => {
+        tl.to(q1, { opacity: 0, duration: .3 }, t0 - .2);
+        tl.fromTo(q2, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .5 }, t0);
+        lineFill(h, [4], GOLD, t0 + .2);
+        sfx("chime", t0 + .2, { dur: 2.2, f0: 783.99 });
+      } });
+    const L4 = [[0, "初六", "终吉"], [2, "六三", "终吉"], [3, "九四", "吉"], [4, "九五", "元吉"]];
+    const lbs = L4.map(([i, n, w]) => el("div", "yao", `<b>${n}</b><span style="color:#f0c776">${w}</span>`, `left:900px;top:${h.y(i)}px;font-size:32px;`));
+    beat("N", "六爻里，有四爻带吉。", "Four of its six lines say auspicious.", { pre: .2, dwell: 3.6,
+      vis: (t0, d) => {
+        tl.to(q2, { opacity: 0, duration: .3 }, t0 - .2);
+        L4.forEach(([i], k) => { lineFill(h, [i], GOLD, t0 + k * .3); tl.fromTo(lbs[k], { opacity: 0 }, { opacity: 1, duration: .3 }, t0 + k * .3); });
+        sfx("ticker", t0, { dur: 1.2, count: 4 });
+        tl.to([g, nt, ...lbs], { opacity: 0, duration: .5 }, t0 + d - .3);
+      } });
+  }
+  beat("E", null, null, { name: "凶卦里，有吉爻。", pre: .3, bigText: "凶卦里，有吉爻。", bigEn: "Even an ominous hexagram has a good line.", bigTop: 440, bigSize: 60 });
+  beat("M", "是吉是凶，到底看什么？", "So what decides good or bad?", { pre: .2 });
+
+  // 34–36：遁卦
+  {
+    const g = G(), h = mkHex(g, HEX.dun, 960, 470, 340, 14, 50, INK, true);
+    let nt;
+    beat("N", "遁卦，讲的是退。", "Dun is about retreat.", { pre: .4,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .4); hexIn(h, t0 - .4); nt = nameTag("遁卦", "Dun · Retreat", 960, 470 - 2.5 * 50 - 150, t0 - .1, t0 + d - .3);
+        sfx("sweep", t0 - .4, { dur: 1 });
+        tl.to(g, { opacity: 0, duration: .4 }, t0 + d - .3);
+      } });
+    beat("M", "退出时机，往往很重要。", "Knowing when to withdraw often matters most.", { pre: .3, dwell: 4.6,
+      vis: (t0, d) => { quote("遁之时义大矣哉", "Great indeed is the meaning of the right time to retreat.", t0, d, 380, 60, "遁卦 · 彖传", "Commentary on the Judgment"); sfx("shimmer", t0, { dur: 1.4 }); } });
+  }
+  // 37：三行大字（你 v9 改的）
+  beat("E", null, null, { name: "没有绝对的好卦，但有好时候。", pre: .4, dwell: 5.6,
+    vis: (t0, d) => {
+      const rows = [["没有绝对的好卦，", 330], ["但", 450], ["有好时候。", 570]];
+      rows.forEach(([z, top], k) => big(z, null, t0 + k * .9, d - k * .9, top, 58));
+      const en = el("div", "big", `<span class="en" style="opacity:1">There is no hexagram that is simply good — but there are good times.</span>`, "top:690px;");
+      tl.fromTo(en, { opacity: 0 }, { opacity: 1, duration: .8 }, t0 + 2.2); tl.to(en, { opacity: 0, duration: .45 }, t0 + d - .45);
+    } });
+
+  // ================= 第二层：时候有形状 =================
+  card("时候有形状", "Time has a shape");
+  {
+    const g = G(), M = mkMorph(g, HEX.tai, 960, 450, 340, 14, 50);
+    const nmY = 450 - 2.5 * 50 - 150;
+    let tagCur = null;
+    const setName = (zh, en, t) => { if (tagCur) tl.to(tagCur, { opacity: 0, duration: .25 }, t - .1); tagCur = nameTag(zh, en, 960, nmY, t + .1, null); return tagCur; };
+    // 39：正月 · 泰
+    beat("N", "正月", "The first month", { pre: .5, dwell: 2.4,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .5);
+        tl.fromTo(M.rows.map(r => r.gy), { opacity: 0 }, { opacity: (i) => HEX.tai[i], duration: .4, stagger: .06 }, t0 - .5);
+        tl.fromTo(M.rows.map(r => r.gn), { opacity: 0 }, { opacity: (i) => 1 - HEX.tai[i], duration: .4, stagger: .06 }, t0 - .5);
+        hanOn(t0, null);
+        sfx("sweep", t0 - .5, { dur: 1 });
+      } });
+    // 40：三阳开＿ → 泰
+    beat("M", null, null, { name: "三阳开＿", pre: .2, dwell: 3.4,
+      vis: (t0, d) => {
+        const b = el("div", "big", `三阳开<span style="display:inline-grid"><span class="u" style="grid-area:1/1;color:#8a8a8f">＿</span><span class="h gold" style="grid-area:1/1;opacity:0">泰</span></span>`, "top:700px;font-size:54px;");
+        tl.fromTo(b, { opacity: 0 }, { opacity: 1, duration: .5 }, t0);
+        const u = b.querySelector(".u"), hh = b.querySelector(".h");
+        [0, 1, 2].forEach(i => M.color(i, GOLD, t0 + .3 + i * .15));
+        for (let i = 0; i < 2; i++) { tl.to(u, { opacity: .25, duration: .3 }, t0 + .9 + i * .7); tl.to(u, { opacity: 1, duration: .3 }, t0 + 1.25 + i * .7); }
+        tl.to(u, { opacity: 0, duration: .2 }, t0 + 2.4); tl.to(hh, { opacity: 1, duration: .4 }, t0 + 2.4);
+        sfx("chime", t0 + 2.4, { dur: 2, f0: 659.25 });
+        tl.to(b, { opacity: 0, duration: .4 }, t0 + d - .2);
+      } });
+    beat("N", "泰为通。", "Tai means flowing through.", { pre: .1, vis: (t0, d) => { setName("泰卦", "Tai · Peace", t0 - .1); } });
+    // 42–43：二月 三月 四月 → 乾
+    const steps = [["二月", "The second month", "dazhuang", "大壮卦", "Da Zhuang"], ["三月", "The third month", "guai", "夬卦", "Guai"], ["四月", "The fourth month", "qian", "乾卦", "Qian"]];
+    steps.forEach(([m, me, k, zh, en], s) => beat("N", m, me, { pre: .1, dwell: 1.9, fixed: true,
+      vis: (t0, d) => { M.set(HEX[k], t0 - .1, .3); M.color(3 + s, GOLD, t0 - .1); setName(zh, en, t0); sfx("click", t0 - .1); } }));
+    beat("N", "乾。", "Qian.", { pre: .1, dwell: 2.2, vis: (t0, d) => { tl.set(M.g, { attr: { filter: "url(#glowG)" } }, t0); tl.set(M.g, { attr: { filter: "url(#glow)" } }, t0 + d); } });
+    // 44：五月 · 姤（一根阴线从最底下进来）
+    beat("N", "五月。", "The fifth month.", { pre: .2, dwell: 2.4,
+      vis: (t0, d) => { M.set(HEX.gou, t0 - .2, .5); M.color(0, CYAN, t0 - .2); setName("姤卦", "Gou", t0); sfx("whoosh", t0 - .2, { dur: .8, pan0: 0, pan1: 0 }); } });
+    beat("M", "白天最长的一天。", "The longest day of the year.", { pre: .2, dwell: 3.6,
+      vis: (t0, d) => { const q = big("夏至", "Summer solstice", t0, d, 700, 54); sfx("shimmer", t0, { dur: 1.2 }); } });
+    beat("N", "第二天起，白天变短。", "From the next day on, days grow shorter.", { pre: .1 });
+    // 47：六月 七月 → 遁 否
+    beat("N", "六月，七月。", "The sixth month, the seventh.", { pre: .1, dwell: 3.4,
+      vis: (t0, d) => {
+        M.set(HEX.dun, t0, .3); M.color(1, CYAN, t0); setName("遁卦", "Dun", t0);
+        M.set(HEX.pi, t0 + 1.5, .3); M.color(2, CYAN, t0 + 1.5); setName("否卦", "Pi · Standstill", t0 + 1.5);
+        sfx("click", t0); sfx("click", t0 + 1.5);
+        tl.to([g, tagCur], { opacity: 0, duration: .4 }, t0 + d - .2);
+      } });
+  }
+  // 48–50：泰、否并排
+  {
+    const g = G(), A = mkHex(g, HEX.tai, 660, 470, 300, 13, 46, INK, true), B = mkHex(g, HEX.pi, 1260, 470, 300, 13, 46, INK, true);
+    const ty = 470 - 2.5 * 46 - 150;
+    let ta, tb;
+    beat("N", "三阳三阴，上下颠倒。", "Three yang, three yin, turned upside down.", { pre: .4, dwell: 3.2,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .4); hexIn(A, t0 - .4, .3, .05); hexIn(B, t0 - .2, .3, .05);
+        ta = nameTag("泰卦", "Tai", 660, ty, t0, null); tb = nameTag("否卦", "Pi", 1260, ty, t0 + .2, null);
+        sfx("sweep", t0 - .4, { dur: 1 });
+      } });
+    // 49：一个在长，一个在退（箭头）
+    const ar = S("g", { opacity: 0, fill: "none", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+    const arrow = (x, y1, y2, col) => { const gg = S("g", { stroke: col }, ar); S("line", { x1: x, y1, x2: x, y2 }, gg); const dir = y2 < y1 ? 1 : -1; S("path", { d: `M ${x - 12} ${y2 + 16 * dir} L ${x} ${y2} L ${x + 12} ${y2 + 16 * dir}` }, gg); };
+    arrow(860, A.y(0) + 10, A.y(2) - 10, GOLD); arrow(1460, B.y(5) + 10, B.y(3) - 10, CYAN);
+    beat("N", "一个在长，一个在退。", "One is growing; the other is withdrawing.", { pre: .1, dwell: 3.0,
+      vis: (t0, d) => {
+        show(ar, t0, .4);
+        const l1 = el("div", "yao", "阳在长", `left:900px;top:${A.y(1)}px;font-size:26px;color:#f0c776;letter-spacing:.2em;`);
+        const l2 = el("div", "yao", "阳在退", `left:1500px;top:${B.y(4)}px;font-size:26px;color:#8fc3d6;letter-spacing:.2em;`);
+        tl.to([l1, l2], { opacity: 1, duration: .4 }, t0 + .2); tl.to([l1, l2, ar], { opacity: 0, duration: .4 }, t0 + d - .2);
+      } });
+    beat("N", "不通。", "Blocked.", { pre: .2, dwell: 2.4,
+      vis: (t0, d) => {
+        tl.to([A.g, ta], { opacity: .15, duration: .5 }, t0 - .2);
+        tl.set(B.g, { attr: { filter: "url(#glowG)" } }, t0);
+        tl.to([g, ta, tb], { opacity: 0, duration: .5 }, t0 + d - .2);
+      } });
+  }
+  // 51：波浪（一条升，一条降）
+  const MON = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+  const YANG = [3, 4, 5, 6, 5, 4, 3, 2, 1, 0, 1, 2];
+  const CH = { x0: 400, dx: 100, y0: 700, dy: 62 };
+  const px = i => CH.x0 + i * CH.dx, py = c => CH.y0 - c * CH.dy;
+  const chart = G();
+  {
+    S("line", { x1: CH.x0 - 40, y1: CH.y0, x2: px(11) + 40, y2: CH.y0, stroke: "#55565b", "stroke-width": 1 }, chart);
+    MON.forEach((m, i) => { const t = S("text", { x: px(i), y: CH.y0 + 44, "text-anchor": "middle", fill: "#8a8a8f", "font-size": 22, "font-family": "NSerif", "font-weight": 500 }, chart); t.textContent = m; });
+    const cp = S("clipPath", { id: "chClip" }, chart); const cr = S("rect", { x: 0, y: 0, width: 0, height: 1080 }, cp);
+    const lines = S("g", { "clip-path": "url(#chClip)" }, chart);
+    const pts = a => a.map((c, i) => `${px(i)},${py(c)}`).join(" ");
+    S("polyline", { points: pts(YANG), fill: "none", stroke: GOLD, "stroke-width": 4, "stroke-linejoin": "round", filter: "url(#glow)" }, lines);
+    S("polyline", { points: pts(YANG.map(c => 6 - c)), fill: "none", stroke: CYAN, "stroke-width": 4, "stroke-linejoin": "round", filter: "url(#glow)" }, lines);
+    YANG.forEach((c, i) => { S("circle", { cx: px(i), cy: py(c), r: 6, fill: GOLD }, lines); S("circle", { cx: px(i), cy: py(6 - c), r: 6, fill: CYAN }, lines); });
+    const lg = S("g", {}, chart);
+    const lt = (x, y, txt, col) => { const t = S("text", { x, y, fill: col, "font-size": 24, "font-family": "NSerif", "font-weight": 500, "letter-spacing": 3 }, lg); t.textContent = txt; };
+    lt(CH.x0 - 40, 250, "— 阳线根数", GOLD); lt(CH.x0 + 200, 250, "— 阴线根数", CYAN);
+    chart.__reveal = (i, t, d) => tl.to(cr, { attr: { width: px(i) + 12 }, duration: d, ease: "power1.inOut" }, t);
+  }
+  beat("N", "一条升，一条降。", "One line rises while the other falls.", { pre: .5, dwell: 4.0,
+    vis: (t0, d) => {
+      tl.to(chart, { opacity: 1, duration: .5 }, t0 - .5);
+      chart.__reveal(6, t0 - .2, 2.2);
+      sfx("sweep", t0 - .2, { dur: 2.2 });
+      tl.to(chart, { opacity: 0, duration: .5 }, t0 + d - .2);
+      tl.to(hanNote, { opacity: 0, duration: .5 }, t0 + d - .2);
+    } });
+  beat("E", null, null, { name: "一阴一阳之谓道", pre: .4, dwell: 5.0,
+    vis: (t0, d) => { quote("一阴一阳之谓道", "One yin, one yang: that is the Way.", t0, d, 400, 62, "《系辞上》", "Great Commentary, Part I"); } });
+  // 53：384 条爻辞里，带「吉」字的 118 条线逐条点亮
+  {
+    const JILINES = [[], [4], [3, 4], [1, 4], [1, 4, 5], [0, 2, 3, 4], [1], [0, 1, 3, 4], [0, 1], [1, 3, 5], [0, 4], [0, 1, 4], [3], [4, 5], [0, 1, 2], [1], [0, 4], [0], [0, 1, 4, 5], [], [3], [2, 4], [], [0, 1], [0], [3, 4], [3, 4, 5], [3], [], [1, 4], [1, 3], [4], [2, 3, 4], [1, 3, 5], [0, 1, 4, 5], [1], [1, 2, 3, 4, 5], [5], [5], [1, 4], [4, 5], [0, 1, 4], [], [0], [1, 3], [0, 3, 4], [5], [5], [1, 3, 5], [1, 2, 5], [0], [5], [1, 4, 5], [0, 4], [1, 3, 4], [], [1, 4], [0, 1], [0, 3], [4], [0], [], [], [1, 3, 4]];
+    const lit = []; JILINES.forEach((ls, k) => ls.forEach(i => lit.push(cells[k].h.L[i])));
+    beat("M", "吉卦吉时", "A good hexagram, at a good time.", { pre: .6, dwell: 6.0,
+      vis: (t0, d) => {
+        tl.set(cells.map(c => c.c), { opacity: 1 }, t0 - .6);
+        tl.set(cells[0].h.g, { attr: { filter: "url(#glow)" } }, t0 - .6);
+        tl.set(cells.flatMap(c => c.h.L.flatMap(o => o.els)), { attr: { fill: DIM } }, t0 - .6);
+        tl.to(grid, { opacity: 1, duration: .6 }, t0 - .6);
+        tl.to(lit.flatMap(o => o.els), { attr: { fill: GOLD }, duration: .2, stagger: .025 }, t0);
+        sfx("ticker", t0, { dur: 2.95, count: 40 });
+        tl.to(grid, { opacity: 0, duration: .6 }, t0 + d - .3);
+      } });
+  }
+  beat("M", null, null, { name: "易经中最好的卦", pre: .3, bigText: "易经中最好的卦", bigEn: "The best hexagram in the I Ching", bigTop: 440, bigSize: 58, dwell: 3.6 });
+
+  // ================= 第三层：最吉之卦 =================
+  card("最吉之卦", "The most auspicious hexagram");
+  {
+    // 55：谦卦，上地下山
+    const g = G(), h = mkHex(g, HEX.qianH, 900, 490, 340, 14, 50, INK, true);
+    const tri = (pos, nm, img, y) => el("div", "tag", `<div class="n" style="font-size:34px"><span style="color:#8a8a8f;font-size:26px;margin-right:18px">${pos}</span>${nm}</div><div class="e" style="font-style:normal;font-family:NSerif;font-size:22px;letter-spacing:.3em">${img}</div>`, `left:${520 - 200}px;top:${y - 34}px;`);
+    const up = tri("上", "坤卦", "地", h.y(4)), lo = tri("下", "艮卦", "山", h.y(1));
+    const nm = el("div", "tag", `<div class="n" style="font-size:120px;line-height:1.25;letter-spacing:.02em">谦卦</div><div class="e">Qian · Modesty</div>`, `left:${1400 - 200}px;top:${490 - 110}px;`);
+    beat("N", "地山谦", "Earth over Mountain: Modesty.", { pre: .4, dwell: 3.4,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .4); hexIn(h, t0 - .4, .3, .06);
+        tl.fromTo([up, lo], { opacity: 0 }, { opacity: 1, duration: .4 }, t0); tl.fromTo(nm, { opacity: 0 }, { opacity: 1, duration: .5 }, t0 + .3);
+        sfx("chime", t0, { dur: 2.4, f0: 587.33 });
+        tl.to([g, up, lo, nm], { opacity: 0, duration: .45 }, t0 + d - .3);
+      } });
+  }
+  // 56–58、63–64：时间轴 大有 → 谦 → 豫
+  const TL = G();
+  const tlNodes = [["dayou", "大有卦", "14"], ["qianH", "谦卦", "15"], ["yu", "豫卦", "16"]].map(([k, zh, n], i) => {
+    const x = 560 + i * 400, gg = S("g", { opacity: .35 }, TL);
+    const h = mkHex(gg, HEX[k], x, 260, 150, 8, 20);
+    const t1 = S("text", { x, y: 380, "text-anchor": "middle", fill: INK, "font-size": 32, "font-family": "NSerif", "font-weight": 500, "letter-spacing": 4 }, gg); t1.textContent = zh;
+    const t2 = S("text", { x, y: 418, "text-anchor": "middle", class: "lbe" }, gg); t2.textContent = "No. " + n;
+    return { gg, h, x };
+  });
+  S("line", { x1: 560, y1: 460, x2: 1360, y2: 460, stroke: "#55565b", "stroke-width": 1.5 }, TL);
+  const tlDot = S("circle", { cx: 560, cy: 460, r: 9, fill: GOLD, filter: "url(#glow)" }, TL);
+  const tlGo = (i, t) => { tl.to(tlDot, { attr: { cx: tlNodes[i].x }, duration: .9, ease: "power2.inOut" }, t); tlNodes.forEach((n, j) => tl.to(n.gg, { opacity: j === i ? 1 : .35, duration: .5 }, t + .3)); sfx("whoosh", t, { dur: .9, pan0: -.2, pan1: .2 }); };
+  beat("N", "大有：拥有很多。", "Da You: possessing a great deal.", { pre: .5, dwell: 3.0,
+    vis: (t0, d) => { tl.to(TL, { opacity: 1, duration: .5 }, t0 - .5); tl.to(tlNodes[0].gg, { opacity: 1, duration: .5 }, t0 - .3); } });
+  beat("N", "它的下一卦，叫谦。", "The very next hexagram is Modesty.", { pre: .1, dwell: 2.8, vis: (t0, d) => tlGo(1, t0) });
+  beat("E", "拥有很多的人，不可以满。", "One who has much must not be full.", { pre: .3, noChime: true,
+    vis: (t0, d) => { quote("有大者，不可以盈", "Having much, one must not be full.", t0, d, 560, 56, "《序卦》", "Sequence of the Hexagrams"); tl.to(TL, { opacity: 0, duration: .5 }, t0 + d - .2); } });
+  // 59：谦卦六爻，句句吉利
+  {
+    const g = G(), h = mkHex(g, HEX.qianH, 640, 500, 380, 15, 58, INK, true);
+    const Y = [["初六", "谦谦君子，用涉大川，<g>吉</g>"], ["六二", "鸣谦，贞<g>吉</g>"], ["九三", "劳谦君子，有终，<g>吉</g>"], ["六四", "无不<g>利</g>，撝谦"], ["六五", "不富以其邻，<g>利</g>用侵伐，无不<g>利</g>"], ["上六", "鸣谦，<g>利</g>用行师，征邑国"]];
+    const ys = Y.map((y, i) => el("div", "yao", `<b>${y[0]}</b>${y[1].replace(/<g>/g, '<span style="color:#f0c776">').replace(/<\/g>/g, "</span>")}`, `left:900px;top:${h.y(i)}px;font-size:31px;`));
+    let nt;
+    beat("N", "六句爻辞，句句吉利。", "Six lines, and every one auspicious.", { pre: .5, dwell: 5.4,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .5); hexIn(h, t0 - .5, .3, .06);
+        nt = nameTag("谦卦", "Qian · Modesty", 640, 500 - 2.5 * 58 - 160, t0 - .3, t0 + d - .3);
+        ys.forEach((e, i) => { tl.fromTo(e, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: .4 }, t0 + i * .35); tl.to(h.L[i].els, { attr: { fill: GOLD }, duration: .3 }, t0 + i * .35); });
+        sfx("ticker", t0, { dur: 2.1, count: 6 });
+        tl.to([g, ...ys], { opacity: 0, duration: .5 }, t0 + d - .3);
+      } });
+  }
+  // 60–61：地中有山
+  {
+    const g = G();
+    const ground = S("line", { x1: 260, y1: 600, x2: 1660, y2: 600, stroke: "#c9b48a", "stroke-width": 2, opacity: .8, pathLength: 1, "stroke-dasharray": 1, "stroke-dashoffset": 1 }, g);
+    const mt = S("path", { d: "M 560 810 L 760 650 L 860 710 L 1000 612 L 1140 690 L 1220 640 L 1380 810", fill: "none", stroke: INK, "stroke-width": 2.5, "stroke-linejoin": "round", filter: "url(#glow)", pathLength: 1, "stroke-dasharray": 1, "stroke-dashoffset": 1 }, g);
+    const lg = el("div", "yao", "地面", `left:1690px;top:600px;font-size:22px;color:#8a8a8f;letter-spacing:.3em;`);
+    beat("E", null, null, { name: "地中有山", pre: .4, dwell: 4.0, noChime: true,
+      vis: (t0, d) => { quote("地中有山", "A mountain within the earth.", t0, d + 3.2, 230, 60, "谦卦 · 象传", "Image commentary on Modesty"); sfx("chime", t0, { dur: 2.4, f0: 523.25 }); tl.set(g, { opacity: 1 }, t0); draw(ground, t0 + .6, 1.0); tl.to(lg, { opacity: 1, duration: .4 }, t0 + 1.2); } });
+    beat("N", "山还在，只是没有冒出地面。", "The mountain is still there; it just doesn't rise above the ground.", { pre: 0, dwell: 4.0,
+      vis: (t0, d) => { draw(mt, t0 - .6, 1.4); sfx("sweep", t0 - .6, { dur: 1.4 }); tl.to([g, lg], { opacity: 0, duration: .5 }, t0 + d - .3); } });
+  }
+  beat("E", null, null, { name: "天道亏盈而益谦", pre: .4, dwell: 5.0,
+    vis: (t0, d) => { quote("天道亏盈而益谦", "The way of heaven diminishes the full and adds to the modest.", t0, d, 400, 60, "谦卦 · 彖传", "Commentary on the Judgment"); } });
+  // 63–65：走到豫
+  beat("N", null, null, { name: "时间轴走到豫", pre: .5, dwell: 1.8,
+    vis: (t0, d) => { tl.to(TL, { opacity: 1, duration: .5 }, t0 - .5); tlGo(2, t0); } });
+  beat("E", null, null, { name: "有大而能谦，必豫", pre: .2, dwell: 4.6, noChime: true,
+    vis: (t0, d) => { quote("有大而能谦，必豫", "Having much and staying modest brings joy.", t0, d, 560, 56, "《序卦》", "Sequence of the Hexagrams"); sfx("chime", t0, { dur: 2.4, f0: 659.25 }); } });
+  beat("N", "豫：快乐。", "Yu: joy.", { pre: .2, dwell: 2.6,
+    vis: (t0, d) => { tl.set(tlNodes[2].h.g, { attr: { filter: "url(#glowG)" } }, t0); tl.to(TL, { opacity: 0, duration: .5 }, t0 + d - .2); } });
+
+  // ================= 第四层：一阳来复 =================
+  card("一阳来复", "The light returns");
+  beat("M", "如果，正在低谷呢？", "And if you are at the bottom?", { pre: .2 });
+  beat("N", "波浪继续往下走。", "The wave keeps going down.", { pre: .5, dwell: 3.4,
+    vis: (t0, d) => {
+      hanOn(t0 - .5, null);
+      tl.to(chart, { opacity: 1, duration: .5 }, t0 - .5);
+      chart.__reveal(7, t0, 1.2);
+      sfx("sweep", t0, { dur: 1.2 });
+      tl.to(chart, { opacity: 0, duration: .5 }, t0 + d - .2);
+    } });
+  {
+    const g = G(), M = mkMorph(g, HEX.guan, 960, 450, 340, 14, 50);
+    const nmY = 450 - 2.5 * 50 - 150;
+    let nt = null;
+    const setName = (zh, en, t) => { if (nt) tl.to(nt, { opacity: 0, duration: .25 }, t - .1); nt = nameTag(zh, en, 960, nmY, t + .1, null); };
+    beat("N", "九月，剥。", "The ninth month: Bo, stripping away.", { pre: .5, dwell: 3.0,
+      vis: (t0, d) => { tl.set(g, { opacity: 1 }, t0 - .5); tl.fromTo(g, { opacity: 0 }, { opacity: 1, duration: .4 }, t0 - .5); M.set(HEX.bo, t0, .4); setName("剥卦", "Bo · Stripping away", t0); sfx("click", t0); } });
+    beat("N", null, null, { name: "剥到只剩最后一根", pre: .1, dwell: 1.6,
+      vis: (t0, d) => { tl.set(M.rows[5].gy, { attr: { filter: "url(#glowG)" } }, t0); tl.fromTo(M.rows[5].gy, { opacity: 1 }, { opacity: .45, duration: .4, yoyo: true, repeat: 2 }, t0); } });
+    beat("N", "十月，六根全暗。", "The tenth month: all six lines dark.", { pre: .1, dwell: 3.0,
+      vis: (t0, d) => { M.set(HEX.kun, t0 - .1, .5); M.colorAll(DIM, t0 + .3, .6); setName("坤卦", "Kun", t0); sfx("thud", t0, { dur: 2 }); } });
+    // 71：一根阳线从最底下亮起
+    beat("N", null, null, { name: "一根阳线从最底下亮起", pre: .3, dwell: 2.0,
+      vis: (t0, d) => {
+        tl.to(nt, { opacity: 0, duration: .3 }, t0 - .2);
+        M.color(0, GOLD, t0); tl.to(M.rows[0].gy, { opacity: 1, duration: .8 }, t0); tl.to(M.rows[0].gn, { opacity: 0, duration: .6 }, t0);
+        tl.set(M.rows[0].gy, { attr: { filter: "url(#glowG)" } }, t0 + .2);
+        sfx("chime", t0, { dur: 3, f0: 880 });
+      } });
+    beat("E", null, null, { name: "冬至", pre: .1, dwell: 3.6, noChime: true,
+      vis: (t0, d) => { setName("复卦", "Fu · Return", t0 - .1); big("冬至", "Winter solstice", t0 + .3, d, 700, 56); } });
+    beat("N", "一年里，夜最长的那一天。", "The longest night of the year.", { pre: .1, dwell: 3.2 });
+    beat("E", "最黑的那个月，光已经开始回来。", "In the darkest month, the light has already begun to return.", { pre: .1, noChime: true,
+      vis: (t0, d) => { tl.to([g, nt], { opacity: 0, duration: .5 }, t0 + d - .2); tl.to(hanNote, { opacity: 0, duration: .5 }, t0 + d - .2); } });
+  }
+  beat("E", "最暗时长回来的那一根，就是天地的心。", "The one line that grows back in the darkest hour is the heart of heaven and earth.", { pre: .4, dwell: 6.0,
+    vis: (t0, d) => { quote("复，其见天地之心乎", "In Return, we see the heart of heaven and earth.", t0, d, 340, 60, "复卦 · 彖传", "Commentary on the Judgment"); } });
+  // 76：否极＿＿ → 泰来
+  beat("M", null, null, { name: "否极＿＿", pre: .4, dwell: 3.6,
+    vis: (t0, d) => {
+      const b = el("div", "big", `否极<span style="display:inline-grid"><span class="u" style="grid-area:1/1;color:#8a8a8f">＿＿</span><span class="h gold" style="grid-area:1/1;opacity:0">泰来</span></span><span class="en" style="opacity:0">When obstruction peaks, peace comes.</span>`, "top:440px;font-size:64px;");
+      tl.fromTo(b, { opacity: 0 }, { opacity: 1, duration: .5 }, t0);
+      const u = b.querySelector(".u"), hh = b.querySelector(".h");
+      for (let i = 0; i < 2; i++) { tl.to(u, { opacity: .25, duration: .3 }, t0 + .8 + i * .7); tl.to(u, { opacity: 1, duration: .3 }, t0 + 1.15 + i * .7); }
+      tl.to(u, { opacity: 0, duration: .2 }, t0 + 2.3); tl.to(hh, { opacity: 1, duration: .4 }, t0 + 2.3); tl.to(b.querySelector(".en"), { opacity: 1, duration: .5 }, t0 + 2.6);
+      sfx("chime", t0 + 2.3, { dur: 2.4, f0: 783.99 });
+      tl.to(b, { opacity: 0, duration: .4 }, t0 + d + 2.6);
+    } });
+  beat("E", "最暗的那天，光已来。", "On the darkest day, the light is already here.", { pre: .1, noChime: true });
+  beat("E", null, null, { name: "易穷则变", pre: .4, dwell: 5.6,
+    vis: (t0, d) => { quote("易穷则变，变则通，通则久", "At the end of a road, change; change, and it flows; flow, and it lasts.", t0, d, 400, 56, "《系辞下》", "Great Commentary, Part II"); } });
+
+  // ================= 结尾：物不可穷 =================
+  card("物不可穷", "Nothing ever reaches its end");
+  beat("M", null, null, { name: "易经的最后一卦", pre: .5, bigText: "易经的最后一卦", bigEn: "The last hexagram of the I Ching", bigTop: 440, bigSize: 56, dwell: 3.2 });
+  {
+    const g = G(), h = mkHex(g, HEX.weiji, 960, 470, 340, 14, 50, INK, true);
+    beat("N", "还没有过河。", "Not yet across the river.", { pre: .4, dwell: 3.0,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .4); hexIn(h, t0 - .4, .3, .06);
+        nameTag("未济卦", "Wei Ji · Before Completion", 960, 470 - 2.5 * 50 - 150, t0, t0 + d - .3);
+        sfx("sweep", t0 - .4, { dur: 1 });
+        tl.to(g, { opacity: 0, duration: .45 }, t0 + d - .3);
+      } });
+  }
+  // 81：小狐汔济，濡其尾（河 + 一个光点游到岸边前停住）
+  {
+    const g = G();
+    const waves = [610, 650, 690].map((y, k) => {
+      let d = `M 240 ${y}`; for (let x = 240; x <= 1500; x += 30) d += ` L ${x} ${y + Math.sin(x / 60 + k) * 6}`;
+      return S("path", { d, fill: "none", stroke: CYAN, "stroke-width": 1.6, opacity: .55 - k * .12, pathLength: 1, "stroke-dasharray": 1, "stroke-dashoffset": 1 }, g);
+    });
+    const bank = S("path", { d: "M 1560 560 L 1540 600 L 1550 650 L 1530 720", fill: "none", stroke: "#c9b48a", "stroke-width": 2.5, filter: "url(#glow)", pathLength: 1, "stroke-dasharray": 1, "stroke-dashoffset": 1 }, g);
+    const bl = S("text", { x: 1610, y: 650, fill: "#8a8a8f", "font-size": 22, "font-family": "NSerif", "font-weight": 500, "letter-spacing": 4 }, g); bl.textContent = "岸";
+    const dot = S("circle", { cx: 300, cy: 640, r: 8, fill: "#fff", filter: "url(#glow)", opacity: 0 }, g);
+    beat("E", "小狐狸快游到岸了，尾巴湿了。", "The little fox has almost crossed — and its tail is wet.", { pre: .5, dwell: 5.4, noChime: true,
+      vis: (t0, d) => {
+        tl.set(g, { opacity: 1 }, t0 - .5);
+        waves.forEach((w, k) => draw(w, t0 - .5 + k * .15, 1.0));
+        draw(bank, t0, .8);
+        quote("小狐汔济，濡其尾", "The little fox, nearly across, wets its tail.", t0, d, 230, 58, "未济卦 · 卦辞", "The Judgment of Wei Ji");
+        tl.to(dot, { opacity: 1, duration: .4 }, t0 + .2);
+        tl.to(dot, { attr: { cx: 1470 }, duration: 3.6, ease: "power3.out" }, t0 + .2);
+        sfx("whoosh", t0 + .2, { dur: 3.2, pan0: -.6, pan1: .5 });
+        tl.to(g, { opacity: 0, duration: .5 }, t0 + d - .3);
+      } });
+  }
+  beat("E", "事物不会走到尽头，所以停在未济。", "Things never reach an end, so the book stops at Not Yet Across.", { pre: .4, dwell: 6.0, noChime: true,
+    vis: (t0, d) => { quote("物不可穷也，故受之以未济，终焉", "Things cannot be exhausted; so comes Wei Ji, and there it ends.", t0, d, 380, 50, "《序卦》", "Sequence of the Hexagrams"); sfx("chime", t0, { dur: 3, f0: 523.25 }); } });
+  beat("M", "哪一卦最好？", "Which hexagram is the best?", { pre: .5, dwell: 3.4,
+    vis: (t0, d) => {
+      tl.set(cells.flatMap(c => c.h.L.flatMap(o => o.els)), { attr: { fill: INK } }, t0 - .5);
+      tl.set(cells.map(c => c.c), { opacity: .5 }, t0 - .5); tl.set(cells[0].h.g, { attr: { filter: "url(#glow)" } }, t0 - .5);
+      tl.to(grid, { opacity: .5, duration: .6 }, t0 - .5);
+    } });
+  beat("E", "也许是你还没有走到的那一卦。", "Perhaps the one you haven't reached yet.", { pre: .2, dwell: 5.6,
+    vis: (t0, d) => { tl.to(grid, { opacity: 0, duration: 1.6 }, t0 + 1.2); } });
+  // 85：片尾卡，与片名卡呼应
+  beat("N", null, null, { name: "片尾卡 易经", pre: .6, dwell: 6.0, fixed: true,
+    vis: (t0, d) => {
+      const e = el("div", "", `<span style="position:absolute;left:${850 - 95}px;top:${470 - 105}px">易</span><span style="position:absolute;left:${1070 - 95}px;top:${470 - 105}px">经</span>`, "position:absolute;inset:0;opacity:0;font-size:190px;line-height:1.1;color:#f5f2ec;text-shadow:0 0 24px rgba(255,255,255,.18);");
+      tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: 1.2 }, t0);
+      tl.to("#tLine", { opacity: 1, duration: 1 }, t0 + .6);
+      tl.to("#titleEn", { opacity: 1, duration: 1 }, t0 + 1.0);
+      sfx("shimmer", t0, { dur: 2.4 });
+      tl.to([e, "#tLine", "#titleEn"], { opacity: 0, duration: 1.2 }, t0 + d - .6);
+    } });
+
+  // ================= finish =================
+  const TOTAL = Math.ceil((T + .6) * 10) / 10;
+  tl.to(D, { t: TOTAL, duration: TOTAL, ease: "none" }, 0);
+  for (const e of document.querySelectorAll("[data-duration]")) e.setAttribute("data-duration", TOTAL);
+  window.__TOTAL = TOTAL;
+  window.__timelines = window.__timelines || {};
+  const _render = tl.render.bind(tl);
+  const syncAll = () => { for (const f of SY) f(); drawDust(); };
+  tl.render = function (...a) { const r = _render(...a); syncAll(); return r; };
+  tl.eventCallback("onUpdate", syncAll);
+  window.__timelines["main"] = tl;
+  syncAll();
+  tl.seek(0);
+})();
+</script>
+</body>
+</html>
