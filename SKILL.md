@@ -159,12 +159,39 @@ description: 把定稿字幕做成 Vibe知识大赏 风格的知识短视频(默
 
 输出:一个新风格包(格式同 §5 的表),交给用户确认后,再按它生成分镜。不把参照视频里的音乐做进成片。
 
-## 7. 环境与移植
+## 7. 环境检查与配置
 
-- 阶段 ①② 只需要文字能力,任何 agent 都能执行。
-- 阶段 ③ 需要:shell、Node、Chromium、ffmpeg、Python(numpy、scipy、playwright)、能后台运行的方式(tmux 或等价物)。云端用环境变量 `HYPERFRAMES_BROWSER_PATH` 指向 Chromium。
-- 开始前先检查这些条件,缺什么告诉用户;缺少渲染条件时,只交付字幕稿和分镜表,并说明可以在哪里渲染。
-- 在用户自己的电脑上(例如 Windows),路径和后台运行方式不同,没有验证过;遇到问题如实说明。
+阶段 ①② 只需要文字能力,任何 agent 都能执行。阶段 ③ 渲染需要先配好环境:第一次使用,或渲染前发现缺东西时,按下面执行。
+
+### 7.1 逐项检查并报告(已有 / 缺失)
+
+- Node.js
+- ffmpeg
+- Chromium(或 HyperFrames / playwright 能使用的 Chrome)
+- Python 3 及 numpy、scipy、playwright
+- HyperFrames(`npx hyperframes` 能运行)
+- 能脱离当前会话、长时间运行的后台方式(Linux/macOS 用 tmux;Windows 见 7.4)
+- `toolkit/assets/gsap.min.js`(见 7.3)
+
+### 7.2 安装规则
+
+- 每安装一项之前,先告诉用户要装什么、装在哪里,等用户同意。
+- 不凭猜测写命令;命令失败时把报错原文告诉用户,不要自行换办法绕过。
+- 缺少渲染条件、用户又不想装时,只交付字幕稿和分镜表,并说明可以在哪里渲染。
+
+### 7.3 GSAP
+
+- 本仓库不包含 `gsap.min.js`(再分发许可未核实)。在用户电脑上执行 `npm i gsap`,把 `node_modules/gsap/dist/gsap.min.js` 复制到 `toolkit/assets/`。
+- 该文件不要提交到 git(`.gitignore` 已排除)。
+
+### 7.4 系统差异(未验证,遇到问题如实说明)
+
+- 云端 Linux:用环境变量 `HYPERFRAMES_BROWSER_PATH` 指向 Chromium;长渲染放进 tmux。
+- Windows:通常没有 tmux。可用的后台方式没有验证过;选定后,先用 7.5 的小样确认渲染不会随会话结束而中断,再正式渲染。HyperFrames 在 Windows 上是否可用也没有验证,不行就如实告诉用户。
+
+### 7.5 小样验证
+
+配好之后,渲染一段约 5 秒的小样,告诉用户是否成功,并记录实测帧率。§3.3 的渲染耗时估算以这个实测帧率为准。
 
 ## 8. 配套工具包文件
 
