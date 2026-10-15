@@ -1,6 +1,6 @@
 # vibevideo
 
-Vibe知识大赏风格知识短视频的制作 skill(默认易经风格,1080p60)。
+Vibe知识大赏风格知识短视频的制作 skill(默认简约科学风,1080p60)。
 
 - `SKILL.md`:skill 本体(流程、规则、默认风格包)。
 - `toolkit/`:配套模板与脚本(HyperFrames 模板、配乐/音效/混音脚本、字体与 GSAP)。
